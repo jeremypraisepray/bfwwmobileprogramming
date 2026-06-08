@@ -1,0 +1,360 @@
+/* ============================================================
+   YARDSKAPES — Global styles
+   Combines the design-token foundation (colors_and_type.css) and
+   the UI kit helpers (kit.css) from the handoff, lifted verbatim
+   per the handoff guidance ("can be lifted nearly verbatim").
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ---------- BRAND PALETTE ---------- */
+  --heritage-green: #204028;   /* primary — sampled from the logo mark */
+  --forest-deep:    #16301E;   /* deeper green for layered surfaces */
+  --charcoal-green: #11201A;   /* near-black premium contrast */
+
+  --sage:           #8E9F84;   /* native plant green, soft secondary */
+  --sage-soft:      #B9C3AD;   /* tints, hairlines on dark */
+  --sage-wash:      #DCE2D2;   /* faint fills */
+
+  --clay:           #B0613B;   /* Texas clay / muted terracotta */
+  --clay-deep:      #8F4D2D;   /* pressed / hover clay */
+
+  --gold:           #B08A4E;   /* brushed gold / sandstone accent */
+  --gold-soft:      #CBA86A;   /* lighter gold for fine lines */
+
+  --limestone:      #F4F0E8;   /* warm off-white — primary background */
+  --limestone-deep: #E8E1D3;   /* alt section background */
+  --cream:          #FBFAF5;   /* lightest surface / cards on color */
+  --white:          #FFFFFF;
+
+  /* ---------- NEUTRAL / INK SCALE ---------- */
+  --ink-900: #11201A;
+  --ink-800: #1B2A21;
+  --ink-700: #2C3A30;
+  --ink-600: #4A554C;
+  --ink-500: #6B756C;
+  --ink-400: #97A096;
+  --ink-300: #C2C8BD;
+  --ink-200: #DDE0D7;
+  --ink-100: #ECEEE7;
+
+  /* ---------- SEMANTIC FOREGROUND ---------- */
+  --fg-1: var(--charcoal-green); /* primary text */
+  --fg-2: var(--ink-600);        /* secondary text */
+  --fg-3: var(--ink-500);        /* muted / captions */
+  --fg-on-dark:   var(--limestone);
+  --fg-on-dark-2: var(--sage-soft);
+
+  /* ---------- SEMANTIC BACKGROUNDS ---------- */
+  --bg-page:      var(--limestone);
+  --bg-alt:       var(--limestone-deep);
+  --bg-surface:   var(--cream);
+  --bg-dark:      var(--heritage-green);
+  --bg-darker:    var(--charcoal-green);
+
+  /* ---------- LINES / BORDERS ---------- */
+  --line:         rgba(17, 32, 26, 0.12);
+  --line-strong:  rgba(17, 32, 26, 0.22);
+  --line-on-dark: rgba(244, 240, 232, 0.16);
+  --hairline-gold: rgba(176, 138, 78, 0.55);
+
+  /* ---------- ACCENTS ---------- */
+  --accent:        var(--clay);
+  --accent-lux:    var(--gold);
+  --focus-ring:    rgba(176, 138, 78, 0.55);
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;  /* architectural sans */
+  --font-body:    'Archivo', 'Helvetica Neue', Arial, sans-serif;  /* workhorse */
+  --font-serif:   'Cormorant Garamond', 'Times New Roman', serif;  /* elegant editorial */
+
+  /* ---------- TYPE SCALE (fluid-ish, rem) ---------- */
+  --step-eyebrow: 0.78rem;   /* uppercase labels */
+  --step-small:   0.875rem;
+  --step-body:    1.0625rem; /* 17px */
+  --step-lead:    1.25rem;
+  --step-h6:      1.125rem;
+  --step-h5:      1.375rem;
+  --step-h4:      1.75rem;
+  --step-h3:      2.25rem;
+  --step-h2:      3rem;
+  --step-h1:      4rem;
+  --step-display: 5.5rem;
+
+  /* ---------- TRACKING ---------- */
+  --track-eyebrow: 0.22em;   /* wide authoritative caps */
+  --track-headline: -0.01em;
+  --track-wordmark: 0.16em;  /* logo-like wide caps */
+
+  /* ---------- RADII ---------- */
+  --r-none: 0px;
+  --r-sm: 2px;     /* sharp, architectural corners */
+  --r-md: 4px;
+  --r-lg: 8px;
+  --r-pill: 999px;
+
+  /* ---------- SPACING (8pt base) ---------- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+  --sp-9: 96px; --sp-10: 128px;
+
+  /* ---------- ELEVATION ---------- */
+  --shadow-sm: 0 1px 2px rgba(17,32,26,0.06), 0 1px 3px rgba(17,32,26,0.05);
+  --shadow-md: 0 4px 14px rgba(17,32,26,0.08), 0 2px 6px rgba(17,32,26,0.05);
+  --shadow-lg: 0 18px 48px rgba(17,32,26,0.14), 0 6px 16px rgba(17,32,26,0.08);
+  --shadow-dark: 0 24px 60px rgba(0,0,0,0.40);
+
+  /* ---------- MOTION ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 480ms;
+
+  /* leaf-chevron texture as background (echoes the logo mark) */
+  --leaf-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='62'%3E%3Cg fill='none' stroke='%23B9C3AD' stroke-width='1.1'%3E%3Cpath d='M27 4 L27 58'/%3E%3Cpath d='M27 12 L13 22 M27 12 L41 22'/%3E%3Cpath d='M27 24 L15 33 M27 24 L39 33'/%3E%3Cpath d='M27 36 L17 44 M27 36 L37 44'/%3E%3Cpath d='M27 48 L19 54 M27 48 L35 54'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   ============================================================ */
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-eyebrow);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--clay);
+  line-height: 1;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-display);
+  line-height: 0.96;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--fg-1);
+  text-wrap: balance;
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-h1);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--fg-1);
+  text-wrap: balance;
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-h2);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+  color: var(--fg-1);
+  text-wrap: balance;
+}
+
+h3, .h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-h3);
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+  color: var(--fg-1);
+}
+
+h4, .h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-h4);
+  line-height: 1.2;
+  color: var(--fg-1);
+}
+
+h5, .h5 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-h5);
+  line-height: 1.25;
+  color: var(--fg-1);
+}
+
+h6, .h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-h6);
+  line-height: 1.3;
+  color: var(--fg-1);
+}
+
+/* Elegant serif — taglines, pull quotes, editorial */
+.serif-display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: var(--step-h1);
+  line-height: 1.08;
+  letter-spacing: 0;
+  font-style: italic;
+  color: var(--fg-1);
+  text-wrap: balance;
+}
+
+.serif-lead {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--step-h4);
+  line-height: 1.35;
+  color: var(--fg-2);
+}
+
+p, .body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--step-body);
+  line-height: 1.6;
+  color: var(--fg-2);
+}
+
+.lead {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--step-lead);
+  line-height: 1.55;
+  color: var(--fg-2);
+}
+
+.small { font-size: var(--step-small); line-height: 1.5; }
+
+.caption {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-3);
+  line-height: 1.4;
+}
+
+/* Wordmark-style tracked caps — for nav, badges, labels */
+.tracked-caps {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-wordmark);
+}
+
+/* ============================================================
+   UI KIT HELPERS (from kit.css)
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg-page);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { font-family: inherit; }
+
+.kit-root { overflow-x: hidden; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+.container-wide { max-width: 1360px; margin: 0 auto; padding: 0 40px; }
+
+/* generic section rhythm */
+.section { padding: 104px 0; }
+.section-tight { padding: 72px 0; }
+
+/* eyebrow with a leading tick */
+.eyebrow-row { display: flex; align-items: center; gap: 12px; }
+.eyebrow-row::before { content: ""; width: 26px; height: 1.5px; background: var(--clay); display: block; }
+
+/* buttons (shared) */
+.btn { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+  border-radius: var(--r-sm); padding: 15px 26px; border: 1.5px solid transparent; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 9px; transition: all var(--dur) var(--ease-out); white-space: nowrap; }
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--heritage-green); color: var(--limestone); }
+.btn-primary:hover { background: var(--forest-deep); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-light { background: var(--limestone); color: var(--heritage-green); }
+.btn-light:hover { background: #fff; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--heritage-green); border-color: var(--line-strong); }
+.btn-outline:hover { border-color: var(--heritage-green); background: rgba(32,64,40,.04); }
+.btn-outline-light { background: transparent; color: var(--limestone); border-color: var(--line-on-dark); }
+.btn-outline-light:hover { border-color: var(--limestone); background: rgba(244,240,232,.08); }
+.btn-clay { background: var(--clay); color: #fff; }
+.btn-clay:hover { background: var(--clay-deep); transform: translateY(-1px); }
+.btn-ghost { background: transparent; border: 0; color: var(--clay); padding: 8px 2px; }
+.btn-ghost:hover { gap: 13px; color: var(--clay-deep); }
+
+/* photo zones — real <img> fills these in production; the branded green
+   placeholder remains as a fallback background behind transparent images. */
+.photo-zone { position: relative; overflow: hidden; background-color: var(--heritage-green);
+  background-image: var(--leaf-texture); background-blend-mode: soft-light;
+  display: flex; align-items: center; justify-content: center; }
+.photo-zone .pz-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.photo-zone .pz-grad::after { content: ""; position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(160deg, rgba(22,48,30,0) 40%, rgba(17,32,26,0.55) 100%); }
+.photo-zone .pz-mark { width: 54px; height: auto; opacity: .34; position: relative; z-index: 1; }
+.photo-zone .pz-cap { position: absolute; bottom: 16px; left: 18px; z-index: 3; font-family: var(--font-display);
+  font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--sage-soft); font-weight: 600; }
+.photo { border-radius: var(--r-md); overflow: hidden; }
+
+/* corner ticks (architectural framing) */
+.framed { position: relative; }
+.tick { position: absolute; width: 22px; height: 22px; pointer-events: none; z-index: 5; }
+.tick-tl { top: 14px; left: 14px; border-top: 1.5px solid var(--gold-soft); border-left: 1.5px solid var(--gold-soft); }
+.tick-tr { top: 14px; right: 14px; border-top: 1.5px solid var(--gold-soft); border-right: 1.5px solid var(--gold-soft); }
+.tick-bl { bottom: 14px; left: 14px; border-bottom: 1.5px solid var(--gold-soft); border-left: 1.5px solid var(--gold-soft); }
+.tick-br { bottom: 14px; right: 14px; border-bottom: 1.5px solid var(--gold-soft); border-right: 1.5px solid var(--gold-soft); }
+
+/* reveal-on-load — transform-only so a frozen/failed run never hides content (opacity stays 1) */
+.fade-up { animation: fadeUp .7s cubic-bezier(0.22,1,0.36,1) both; }
+@keyframes fadeUp { from { transform: translateY(18px); } to { transform: none; } }
+
+.nav-links a { white-space: nowrap; }
+
+/* hairline divider */
+.hr { height: 1px; background: var(--line); border: 0; margin: 0; }
+.hr-gold { height: 1px; background: var(--hairline-gold); border: 0; }
+
+/* ============================================================
+   RESPONSIVE (production breakpoints — see handoff "Responsive")
+   ============================================================ */
+
+@media (max-width: 1024px) {
+  .container, .container-wide { padding: 0 28px; }
+  .section { padding: 80px 0; }
+  .grid-services { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-process { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 900px) {
+  .nav-links, .nav-phone, .nav-cta-desktop { display: none !important; }
+  .nav-toggle { display: inline-flex !important; }
+  .split-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+  .split-grid .split-photo { order: -1; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr) !important; }
+  .hero-stats > div:nth-child(3) { border-left: none !important; }
+}
+
+@media (max-width: 680px) {
+  .container, .container-wide { padding: 0 20px; }
+  .section { padding: 64px 0; }
+  .grid-services, .grid-process, .grid-gallery { grid-template-columns: 1fr !important; }
+  .footer-grid { grid-template-columns: 1fr 1fr !important; }
+  .hero-stats { grid-template-columns: 1fr 1fr !important; }
+}
