@@ -1,156 +1,123 @@
-# Break Free Worldwide CRM
-### Mobile Programming Lead Management System
+# Yardskapes — Marketing Website
 
-A clean, fast, and beginner-friendly CRM built specifically for the Break Free Worldwide sales and marketing team.
+**“Inspired by Nature, Perfected by Us.”**
 
----
-
-## 🚀 Running Locally
-
-### Prerequisites
-- Node.js 18+ installed ([download here](https://nodejs.org))
-- A terminal (Terminal on Mac, Command Prompt on Windows)
-
-### Steps
-
-1. **Open a terminal and navigate to this folder:**
-   ```bash
-   cd bfw-crm
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser and visit:**
-   ```
-   http://localhost:3000
-   ```
-
-That's it! The app runs fully in your browser — no database setup needed. All data is saved to your browser's local storage.
+A single-page marketing website for Yardskapes, a premium Houston estate-landscaping
+company. Built with **Next.js 14 (App Router)**, TypeScript, Tailwind, and `lucide-react`,
+recreated from the design handoff in a production-ready stack.
 
 ---
 
-## ☁️ Deploying to Vercel (Free)
+## 🧱 What's inside
 
-Vercel is the easiest way to put this app online so your whole team can use it.
+```
+app/
+├── layout.tsx       # <html> shell, fonts, SEO metadata
+├── page.tsx         # Page composition (Nav → Hero → … → Footer + QuoteModal)
+└── globals.css      # Design tokens + UI-kit styles (lifted from the handoff)
 
-### Option A: Deploy via GitHub (Recommended)
+components/site/
+├── primitives.tsx   # Eyebrow, Btn, Mark, Photo, IconTick
+├── Nav.tsx          # Sticky nav (frosts on scroll, mobile hamburger sheet)
+├── Hero.tsx         # Photo hero + green overlay + stat strip
+├── Services.tsx     # 6-up service card grid
+├── SplitFeature.tsx # "Blueprint meets nature" split block
+├── Process.tsx      # Dark 4-step process band
+├── Gallery.tsx      # Drag-to-compare before/after + portfolio grid
+├── Testimonial.tsx  # Serif pull quote
+├── CTAFooter.tsx    # Final CTA band + footer
+└── QuoteModal.tsx   # "Request a Walkthrough" lead-capture modal (with validation)
 
-1. **Create a free account** at [vercel.com](https://vercel.com)
-2. **Push this project to GitHub:**
-   - Go to [github.com/new](https://github.com/new) and create a new repo
-   - Follow GitHub's instructions to push the code
-3. **Connect to Vercel:**
-   - In Vercel, click "Add New Project"
-   - Import your GitHub repo
-   - Click **Deploy** — that's it!
+public/
+├── assets/          # Brand logos & marks (PNG, transparent)
+└── images/          # Photography (hero, before/after, split, gallery)
+```
 
-### Option B: Deploy via Vercel CLI
+---
+
+## 🚀 Run locally
+
+**Prerequisites:** Node.js 18+ ([download](https://nodejs.org)).
+
+```bash
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000>.
+
+Other scripts: `npm run build` (production build), `npm start` (serve the build),
+`npm run lint`.
+
+---
+
+## ☁️ Deploy to Vercel (recommended)
+
+This repo includes `vercel.json` and is configured for Next.js, so deployment is
+essentially one click.
+
+### Option A — Connect the GitHub repo (best for ongoing updates)
+
+1. Create a free account at <https://vercel.com> (sign in with GitHub).
+2. **Add New → Project**, then import this repository.
+3. Vercel auto-detects Next.js — leave the defaults:
+   - Build command: `npm run build`
+   - Output: `.next`
+   - Install: `npm install`
+4. Click **Deploy**. You'll get a live `*.vercel.app` URL in ~60 seconds.
+5. Every push to the default branch redeploys automatically; pull requests get
+   preview URLs.
+
+### Option B — Vercel CLI
 
 ```bash
 npm install -g vercel
-vercel
+vercel          # preview deploy
+vercel --prod   # production deploy
 ```
 
-Follow the prompts. Your app will be live in ~60 seconds.
+### Custom domain
 
-### ⚠️ Important Note on Data Storage
-
-This V1 uses **browser local storage**. This means:
-- Each team member's browser stores their own data separately
-- Data does not sync across devices or team members
-- Clearing browser data will erase leads
-
-**For a shared team database**, upgrade to V2 with a backend (Supabase or PlanetScale recommended — both have free tiers).
-
----
-
-## 📁 File Structure
+In the Vercel project: **Settings → Domains → Add** (e.g. `yardskapes.com`) and
+follow the DNS instructions. Once a domain is attached, set the env var below so
+social-share/OG image URLs resolve correctly:
 
 ```
-bfw-crm/
-├── app/                      # All pages (Next.js App Router)
-│   ├── page.tsx              # Dashboard
-│   ├── pipeline/page.tsx     # Kanban Pipeline Board
-│   ├── leads/page.tsx        # All Leads Table
-│   ├── follow-ups/page.tsx   # Follow-Ups Due Today
-│   ├── categories/page.tsx   # Leads by Category
-│   ├── closed/page.tsx       # Closed Deals
-│   ├── layout.tsx            # App shell (sidebar + providers)
-│   └── globals.css           # Global styles
-│
-├── components/
-│   ├── layout/
-│   │   ├── Sidebar.tsx       # Left nav sidebar
-│   │   └── PageHeader.tsx    # Page title + action buttons
-│   ├── ui/
-│   │   ├── Badge.tsx         # Status badges
-│   │   ├── Button.tsx        # Buttons
-│   │   └── Modal.tsx         # Modal dialog
-│   └── leads/
-│       ├── LeadCard.tsx      # Card for pipeline board
-│       ├── LeadDetail.tsx    # Full lead view + activity log
-│       └── LeadForm.tsx      # Add/edit lead form
-│
-├── lib/
-│   ├── types.ts              # TypeScript types + seed data + constants
-│   ├── context.tsx           # Global state management
-│   └── utils.ts              # Helper functions
-│
-├── tailwind.config.js
-├── tsconfig.json
-├── next.config.js
-└── package.json
+NEXT_PUBLIC_SITE_URL=https://yardskapes.com
 ```
 
----
-
-## 🎯 How to Use
-
-### Adding a Lead
-Click **"Add Lead"** from any page. Fill in the organization name and contact — everything else is optional but helpful.
-
-### Moving a Lead Through the Pipeline
-- **Pipeline Board**: Drag the lead card to a new column
-- **Lead Detail**: Open a lead and use the "Move to Stage" dropdown
-
-### Logging Activity
-1. Click any lead to open its detail panel
-2. Click **"Log Activity"**
-3. Select the activity type, date, and write your notes
-4. Click **Save Activity**
-
-### Tracking Follow-Ups
-Set a "Next Follow-Up Date" on any lead. The **Follow-Ups** page will show you everything due today, overdue items, and what's coming in the next 7 days.
+(On Vercel, `VERCEL_URL` is used automatically if this isn't set.)
 
 ---
 
-## 📊 Mobile Programming Categories
+## 🖼️ Replacing photography
 
-| Category | Description |
-|----------|-------------|
-| School Programs | K-12 schools, districts, after-school |
-| Performances | Live shows, showcases, stage events |
-| Corporate | Brand activations, partnerships, events |
-| Workshops | Classes, workshops, hands-on training |
+All photos live in `public/images/`. To swap one, replace the file (keep the same
+name) or update the `src` in the relevant component:
 
----
+| File | Used in |
+|---|---|
+| `hero.png` | Hero background (`components/site/Hero.tsx`) |
+| `split-detail.png` | Split feature (`SplitFeature.tsx`) |
+| `before.png` / `after.png` | Before/after slider (`Gallery.tsx`) |
+| `gallery-*.png` | Portfolio cards (`Gallery.tsx`) |
 
-## 🔄 Upgrading to V2 (Shared Team Database)
-
-When you're ready to have all team members share the same data, the recommended upgrade path is:
-
-1. **Supabase** (free tier) — PostgreSQL database with a simple API
-2. Replace the `localStorage` calls in `lib/context.tsx` with Supabase fetch calls
-3. Estimated effort: 2–4 hours for a developer
+Brand logos/marks live in `public/assets/`.
 
 ---
 
-Built with ❤️ for Break Free Worldwide
+## 📨 Wiring the "Request a Walkthrough" form
+
+The lead-capture modal (`components/site/QuoteModal.tsx`) currently validates
+input (required name/email/address, email format, honeypot spam trap) and shows a
+success state after a simulated submit. **Before launch**, point it at a real
+destination — see the `TODO` in `QuoteModal.tsx`'s `submit()`:
+
+1. Add an API route (e.g. `app/api/quote/route.ts`) or use a form service
+   (Formspree, Resend, a CRM webhook, etc.).
+2. `POST` the form payload and only show the success state on a `2xx` response.
+3. Optionally add analytics events on modal open + submit.
+
+---
+
+Built for Yardskapes · Houston, Texas
