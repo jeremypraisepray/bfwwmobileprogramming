@@ -106,17 +106,37 @@ Brand logos/marks live in `public/assets/`.
 
 ---
 
-## 📨 Wiring the "Request a Walkthrough" form
+## 📨 The "Request a Walkthrough" form
 
-The lead-capture modal (`components/site/QuoteModal.tsx`) currently validates
-input (required name/email/address, email format, honeypot spam trap) and shows a
-success state after a simulated submit. **Before launch**, point it at a real
-destination — see the `TODO` in `QuoteModal.tsx`'s `submit()`:
+The lead-capture modal (`components/site/QuoteModal.tsx`) validates input
+(required name/email/address, email format, honeypot spam trap) and POSTs to the
+API route at **`app/api/quote/route.ts`**, which emails every submission to
+**moy@yardskapes.com** via [Resend](https://resend.com).
 
-1. Add an API route (e.g. `app/api/quote/route.ts`) or use a form service
-   (Formspree, Resend, a CRM webhook, etc.).
-2. `POST` the form payload and only show the success state on a `2xx` response.
-3. Optionally add analytics events on modal open + submit.
+### Make it send (one-time setup)
+
+1. Create a free account at <https://resend.com> and generate an **API key**.
+2. In Vercel: **Settings → Environment Variables**, add:
+
+   ```
+   RESEND_API_KEY=<your key>
+   ```
+
+3. **Verify the `yardskapes.com` domain in Resend** (Resend → Domains → add DNS
+   records — do this alongside the domain setup), then add:
+
+   ```
+   QUOTE_FROM_EMAIL=Yardskapes Website <noreply@yardskapes.com>
+   ```
+
+   Until the domain is verified, the form falls back to Resend's shared
+   `onboarding@resend.dev` sender, which in test mode only delivers to the email
+   that owns the Resend account.
+
+4. Redeploy. Leads now arrive at `moy@yardskapes.com` (the customer's email is set
+   as the reply-to, so you can reply directly).
+
+Override the destination anytime with `QUOTE_TO_EMAIL`.
 
 ---
 

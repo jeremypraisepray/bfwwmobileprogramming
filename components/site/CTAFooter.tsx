@@ -23,9 +23,9 @@ export function CTA({ onQuote }: { onQuote: () => void }) {
           <Btn variant="light" icon={ArrowRight} onClick={onQuote}>
             Request a Walkthrough
           </Btn>
-          <a href="tel:+17135550148">
+          <a href="tel:+18326616276">
             <Btn variant="outline-light" icon={Phone}>
-              (713) 555-0148
+              (832) 661-6276
             </Btn>
           </a>
         </div>
@@ -37,7 +37,7 @@ export function CTA({ onQuote }: { onQuote: () => void }) {
 const FOOTER_COLS: [string, string[]][] = [
   ['Services', ['Landscape Design', 'Hardscapes', 'Native Planting', 'Irrigation', 'Lighting', 'Maintenance']],
   ['Company', ['Our Work', 'Process', 'About', 'Careers', 'Contact']],
-  ['Serving', ['River Oaks', 'Memorial', 'The Woodlands', 'Sugar Land', 'Katy']],
+  ['Serving', ['River Oaks', 'Memorial', 'The Woodlands', 'Sugar Land', 'Katy', 'All Houston Areas']],
 ];
 
 export function Footer() {

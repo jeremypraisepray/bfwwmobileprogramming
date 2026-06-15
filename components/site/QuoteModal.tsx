@@ -121,16 +121,18 @@ export function QuoteModal({ open, onClose }: { open: boolean; onClose: () => vo
     if (!validate()) return;
     setSubmitting(true);
     try {
-      // TODO (production): POST `f` to a real endpoint (CRM / lead inbox / email
-      // service) and only show success on a 2xx response; handle/show errors.
-      // Example:
-      //   const res = await fetch('/api/quote', { method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) });
-      //   if (!res.ok) throw new Error('Request failed');
-      await new Promise((r) => setTimeout(r, 600)); // simulated network latency
+      const res = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...f, company: hp }), // `company` is the honeypot field
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || 'Request failed');
+      }
       setSent(true);
-    } catch {
-      setErrors({ email: 'Something went wrong. Please try again or call us.' });
+    } catch (err) {
+      setErrors({ email: err instanceof Error ? err.message : 'Something went wrong. Please try again or call us.' });
     } finally {
       setSubmitting(false);
     }

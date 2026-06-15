@@ -63,12 +63,12 @@ export function Nav({ onQuote }: { onQuote: () => void }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <a
-            href="tel:+17135550148"
+            href="tel:+18326616276"
             className="tracked-caps nav-phone"
             style={{ fontSize: 12, color: 'var(--fg-2)', letterSpacing: '.1em', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <Phone size={14} aria-hidden />
-            (713) 555-0148
+            (832) 661-6276
           </a>
           <span className="nav-cta-desktop">
             <Btn variant="primary" icon={Leaf} onClick={onQuote}>
@@ -109,12 +109,12 @@ export function Nav({ onQuote }: { onQuote: () => void }) {
               </a>
             ))}
             <a
-              href="tel:+17135550148"
+              href="tel:+18326616276"
               className="tracked-caps"
               style={{ fontSize: 13, color: 'var(--fg-2)', letterSpacing: '.1em', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}
             >
               <Phone size={15} aria-hidden />
-              (713) 555-0148
+              (832) 661-6276
             </a>
             <div style={{ marginTop: 8 }}>
               <Btn
