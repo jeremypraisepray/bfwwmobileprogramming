@@ -1,8 +1,8 @@
 'use client';
 
-/* Yardskapes website — Split feature ("blueprint meets nature") */
+/* Yardskapes website — Split feature (hardscaping focus) */
 
-import { Frame, Ruler, Leaf, ArrowRight } from 'lucide-react';
+import { Layers, Ruler, Leaf, ArrowRight } from 'lucide-react';
 import { Eyebrow, Btn, Photo, IconTick } from './primitives';
 
 export function SplitFeature() {
@@ -16,18 +16,18 @@ export function SplitFeature() {
           <Photo h={520} framed src="/images/split-detail.png" alt="Detailed hardscape and stonework by Yardskapes" />
         </div>
         <div>
-          <Eyebrow>Blueprint meets Nature</Eyebrow>
+          <Eyebrow>Patios &amp; Stonework</Eyebrow>
           <h2 style={{ margin: '20px 0 0' }}>
             Inspired by nature.
             <br />
-            Engineered with precision.
+            Focused hardscaping.
           </h2>
           <p className="lead" style={{ marginTop: 22 }}>
-            Every Yardskapes property starts as a drawing — grades, sightlines, drainage, and plant architecture mapped
-            before a single stone is set. The result looks effortless because nothing about it was left to chance.
+            Every Yardskapes project is built around its hardscape — patios, walls, and stonework set with precision,
+            then softened with planting. The result looks effortless because nothing about it was left to chance.
           </p>
           <div style={{ display: 'grid', gap: 18, marginTop: 30 }}>
-            <IconTick icon={Frame}>Scaled site plans &amp; 3D grading for every project</IconTick>
+            <IconTick icon={Layers}>Custom patios, walkways, and retaining walls built to last</IconTick>
             <IconTick icon={Ruler}>Steel-edged beds and millimeter-clean transitions</IconTick>
             <IconTick icon={Leaf}>Native, drought-smart palettes built for Houston heat</IconTick>
           </div>

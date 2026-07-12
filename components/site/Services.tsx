@@ -3,15 +3,15 @@
 /* Yardskapes website — Services grid */
 
 import { useState } from 'react';
-import { Ruler, Layers, Sprout, Droplets, Lightbulb, ShieldCheck } from 'lucide-react';
+import { Sofa, Layers, Sprout, Droplets, Lightbulb, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Eyebrow } from './primitives';
 
 type Service = { n: string; icon: LucideIcon; t: string; d: string };
 
 const SERVICES: Service[] = [
-  { n: '01', icon: Ruler, t: 'Landscape Design', d: 'Master plans engineered for your property — drawn with precision, built to last a generation.' },
-  { n: '02', icon: Layers, t: 'Hardscapes & Stonework', d: 'Limestone patios, steel edging, decomposed-granite paths, and modern outdoor architecture.' },
+  { n: '01', icon: Sofa, t: 'Patios & Outdoor Living', d: 'Custom patios and outdoor living areas — limestone, pavers, and clean-lined spaces built for Texas evenings.' },
+  { n: '02', icon: Layers, t: 'Hardscapes & Stonework', d: 'Retaining walls, steel edging, decomposed-granite paths, and modern outdoor architecture.' },
   { n: '03', icon: Sprout, t: 'Native Planting', d: 'Drought-smart Texas natives and curated beds that look intentional in every season.' },
   { n: '04', icon: Droplets, t: 'Smart Irrigation', d: 'Multi-zone, weather-aware systems that protect your investment and conserve water.' },
   { n: '05', icon: Lightbulb, t: 'Landscape Lighting', d: 'Warm architectural lighting that makes every edge and texture read after dark.' },
