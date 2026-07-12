@@ -35,9 +35,9 @@ export function CTA({ onQuote }: { onQuote: () => void }) {
 }
 
 const FOOTER_COLS: [string, string[]][] = [
-  ['Services', ['Landscape Design', 'Hardscapes', 'Native Planting', 'Irrigation', 'Lighting', 'Maintenance']],
+  ['Services', ['Patios', 'Hardscapes', 'Native Planting', 'Irrigation', 'Lighting', 'Maintenance']],
   ['Company', ['Our Work', 'Process', 'About', 'Careers', 'Contact']],
-  ['Serving', ['River Oaks', 'Memorial', 'The Woodlands', 'Sugar Land', 'Katy', 'All Houston Areas']],
+  ['Serving', ['Friendswood', 'League City', 'Clear Lake', 'Webster', 'Pearland', 'Alvin', 'Dickinson', 'Texas City', 'Santa Fe', 'Galveston', 'All Houston Areas']],
 ];
 
 export function Footer() {

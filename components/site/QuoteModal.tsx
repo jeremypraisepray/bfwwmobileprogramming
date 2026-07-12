@@ -75,7 +75,7 @@ function Field({
   );
 }
 
-const SERVICES = ['Landscape Design', 'Hardscapes', 'Native Planting', 'Irrigation', 'Lighting', 'Full Maintenance'];
+const SERVICES = ['Patios', 'Hardscapes', 'Native Planting', 'Irrigation', 'Lighting', 'Full Maintenance'];
 
 type FormState = { name: string; addr: string; email: string; service: string };
 type Errors = Partial<Record<'name' | 'addr' | 'email', string>>;
@@ -84,7 +84,7 @@ export function QuoteModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  const [f, setF] = useState<FormState>({ name: '', addr: '', email: '', service: 'Landscape Design' });
+  const [f, setF] = useState<FormState>({ name: '', addr: '', email: '', service: 'Patios' });
   const [hp, setHp] = useState(''); // honeypot — must stay empty
 
   // reset transient state whenever the modal is reopened
