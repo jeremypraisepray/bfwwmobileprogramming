@@ -1,5 +1,27 @@
 import type { Metadata, Viewport } from 'next';
+import { Barlow, Barlow_Condensed, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-barlow',
+  display: 'swap',
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-barlow-condensed',
+  display: 'swap',
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-plex-mono',
+  display: 'swap',
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   ? process.env.NEXT_PUBLIC_SITE_URL
@@ -9,36 +31,30 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Yardskapes — Premium Houston Landscaping',
+  title: 'Free Roof Inspection — American Master Roofing (Houston, TX)',
   description:
-    'Yardskapes designs, builds, and maintains premium estate landscapes across greater Houston. Inspired by nature, perfected by us.',
-  keywords: [
-    'Houston landscaping',
-    'estate landscaping',
-    'landscape design',
-    'hardscapes',
-    'native planting',
-    'smart irrigation',
-    'landscape lighting',
-  ],
+    'Book a free roof inspection in Houston, TX. A trained inspector walks your roof, photographs every finding, and gives you a straight answer — maintenance, repair, replacement, or nothing at all.',
+  robots: { index: true, follow: true },
   openGraph: {
-    title: 'Yardskapes — Premium Houston Landscaping',
+    title: 'Free Roof Inspection — American Master Roofing',
     description:
-      'Premium landscaping & outdoor living across greater Houston. Designed, built, and maintained by one in-house team.',
+      'A trained inspector walks your roof, photographs every finding, and gives you a straight answer. Free inspection, no obligation. Houston, TX.',
     type: 'website',
-    images: ['/images/hero.png'],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#204028',
+  themeColor: '#1b2a5b',
   width: 'device-width',
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${barlow.variable} ${barlowCondensed.variable} ${plexMono.variable}`}
+    >
       <body>{children}</body>
     </html>
   );
