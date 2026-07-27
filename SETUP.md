@@ -57,6 +57,10 @@ git push -u origin main
    - Optional: **Create Opportunity** in your pipeline, plus an internal
      notification / SMS autoresponder.
 
+> **Map fields using a _complete_ test lead.** When you click "Check for new
+> requests", walk the whole funnel to the end so the sample payload contains
+> every field (see the early-capture note below).
+
 The route POSTs this JSON shape to the webhook:
 
 ```json
@@ -64,11 +68,32 @@ The route POSTs this JSON shape to the webhook:
   "firstName": "...", "lastName": "...", "phone": "+1XXXXXXXXXX", "email": "...",
   "address1": "...", "city": "...", "postalCode": "...", "state": "TX",
   "concern": "...", "timing": "...", "offerInterests": "a, b, c",
-  "urgentLeak": true, "source": "Free Inspection Funnel"
+  "urgentLeak": true, "stage": "complete", "source": "Free Inspection Funnel"
 }
 ```
 
 > Phone is normalized to E.164 (`+1XXXXXXXXXX`) server-side before it is sent.
+
+### Two-stage lead capture (don't lose drop-offs)
+
+The funnel POSTs to `/api/lead` **twice**:
+
+1. **`stage: "contact"`** — fired the moment someone finishes Step 2 (name,
+   phone, email, concern). This is a "first-touch" capture so a lead is saved
+   even if the visitor abandons before finishing. Address/timing/offers aren't
+   collected yet, so those fields are **omitted** from this payload.
+2. **`stage: "complete"`** — fired on the final step with the full record.
+
+Because GoHighLevel's **Create/Update Contact** action upserts by email/phone,
+the second call updates the same contact — it doesn't create a duplicate. The
+partial call omits the not-yet-collected fields, so it never blanks out data the
+complete call fills in.
+
+Optional GHL tagging using `stage`:
+- Tag every lead `inspection-request` on both stages.
+- Add a `completed-funnel` tag only when `stage = "complete"`. Any contact with
+  `inspection-request` but **without** `completed-funnel` is a drop-off you can
+  follow up on.
 
 **Option B (API v2 direct upsert)** is documented in the design handoff. If you
 prefer it, swap the webhook `fetch` in `app/api/lead/route.ts` for a call to

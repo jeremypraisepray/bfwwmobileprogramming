@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
   }
 
   // 4) Server-side validation (mirrors the client rules)
+  // `stage` is 'contact' for the first-touch capture at Step 2 (contact fields
+  // only) or 'complete' for the finished submission (address required too).
+  const stage = str(body.stage) === 'contact' ? 'contact' : 'complete';
   const first = str(body.first);
   const last = str(body.last);
   const email = str(body.email);
@@ -95,31 +98,39 @@ export async function POST(req: NextRequest) {
   const offers = Array.isArray(body.offers) ? body.offers.filter((o) => typeof o === 'string') : [];
   const urgentLeak = body.urgentLeak === true || concern === 'Active leak or water stain';
 
+  // Contact fields are always required.
   if (!first) return bad('Please enter your first name.');
   if (!last) return bad('Please enter your last name.');
   if (phoneRaw.replace(/\D/g, '').length < 10) return bad('Please enter a valid mobile phone number.');
   if (!EMAIL_RE.test(email)) return bad('Please enter a valid email address.');
-  if (address.length < 5) return bad('Please enter your street address.');
-  if (!/^\d{5}$/.test(zip)) return bad('Please enter a valid 5-digit ZIP code.');
+  // Address is only required on the completed submission.
+  if (stage === 'complete') {
+    if (address.length < 5) return bad('Please enter your street address.');
+    if (!/^\d{5}$/.test(zip)) return bad('Please enter a valid 5-digit ZIP code.');
+  }
 
   const phone = toE164(phoneRaw);
+  const offerInterests = offers.join(', ');
 
-  // 5) Build the GHL payload (matches the handoff's documented shape)
-  const payload = {
+  // 5) Build the GHL payload (matches the handoff's documented shape).
+  // Empty optional fields are omitted so an early 'contact' capture never
+  // blanks out values a later 'complete' submission has already set.
+  const payload: Record<string, unknown> = {
     firstName: first,
     lastName: last,
     phone,
     email,
-    address1: address,
-    city,
-    postalCode: zip,
     state: 'TX',
-    concern,
-    timing,
-    offerInterests: offers.join(', '),
     urgentLeak,
+    stage,
     source: 'Free Inspection Funnel',
   };
+  if (address) payload.address1 = address;
+  if (city) payload.city = city;
+  if (zip) payload.postalCode = zip;
+  if (concern) payload.concern = concern;
+  if (timing) payload.timing = timing;
+  if (offerInterests) payload.offerInterests = offerInterests;
 
   // 6) Forward to GoHighLevel
   const webhookUrl = process.env.GHL_WEBHOOK_URL;

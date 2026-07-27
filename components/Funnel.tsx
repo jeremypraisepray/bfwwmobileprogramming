@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 
@@ -157,6 +157,10 @@ const PHOTO_SIZES = '(max-width: 859px) 100vw, 45vw';
 export default function Funnel() {
   const [s, setS] = useState<State>(INITIAL);
 
+  // Guards the one-time "first-touch" lead capture at Step 2 so we don't
+  // re-fire it if the user steps back and forward again.
+  const capturedRef = useRef(false);
+
   // save = setState + persist the draft (mirrors the prototype's save()).
   const save = useCallback((patch: Partial<State>) => {
     setS((prev) => {
@@ -204,12 +208,52 @@ export default function Funnel() {
     save({ offers: sel ? s.offers.filter((o) => o !== label) : s.offers.concat(label), error: '' });
   };
 
-  // Step 2 — validate contact fields before advancing.
+  const contactValid = () =>
+    !!s.first.trim() &&
+    !!s.last.trim() &&
+    s.phone.replace(/\D/g, '').length >= 10 &&
+    /^\S+@\S+\.\S+$/.test(s.email.trim());
+
+  // Build the lead payload sent to /api/lead. `stage` distinguishes the early
+  // first-touch capture ('contact') from the completed submission ('complete').
+  const buildPayload = (stage: 'contact' | 'complete') => ({
+    first: s.first,
+    last: s.last,
+    phone: s.phone,
+    email: s.email,
+    address: s.address,
+    city: s.city,
+    zip: s.zip,
+    concern: s.concern,
+    timing: s.timing,
+    offers: s.offers,
+    urgentLeak: urgent,
+    stage,
+    company: s.company, // honeypot
+  });
+
+  const postLead = (stage: 'contact' | 'complete') =>
+    fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildPayload(stage)),
+    });
+
+  // Step 2 — validate contact fields, fire the first-touch capture, advance.
   const nextContact = () => {
     if (!s.first.trim()) return save({ error: 'Please enter your first name.' });
     if (!s.last.trim()) return save({ error: 'Please enter your last name.' });
     if (s.phone.replace(/\D/g, '').length < 10) return save({ error: 'Please enter a valid mobile phone number.' });
     if (!/^\S+@\S+\.\S+$/.test(s.email.trim())) return save({ error: 'Please enter a valid email address.' });
+
+    // Fire-and-forget: capture the lead now so it isn't lost if they drop off.
+    // Sent once per session; the final submit updates the same contact in GHL.
+    if (!capturedRef.current) {
+      capturedRef.current = true;
+      postLead('contact').catch(() => {
+        /* best-effort; the final submit will still create the lead */
+      });
+    }
     save({ screen: 3, error: '' });
   };
 
@@ -220,32 +264,13 @@ export default function Funnel() {
     save({ screen: 5, error: '' });
   };
 
+  // Final step — send the complete lead and show confirmation on success.
   const submit = async () => {
-    if (!s.first.trim()) return save({ error: 'Please enter your first name.' });
-    if (!s.last.trim()) return save({ error: 'Please enter your last name.' });
-    if (s.phone.replace(/\D/g, '').length < 10) return save({ error: 'Please enter a valid mobile phone number.' });
-    if (!/^\S+@\S+\.\S+$/.test(s.email.trim())) return save({ error: 'Please enter a valid email address.' });
+    if (!contactValid()) return save({ error: 'Please go back and complete your contact details.' });
 
     setS((prev) => ({ ...prev, submitting: true, error: '' }));
     try {
-      const res = await fetch('/api/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first: s.first,
-          last: s.last,
-          phone: s.phone,
-          email: s.email,
-          address: s.address,
-          city: s.city,
-          zip: s.zip,
-          concern: s.concern,
-          timing: s.timing,
-          offers: s.offers,
-          urgentLeak: urgent,
-          company: s.company, // honeypot
-        }),
-      });
+      const res = await postLead('complete');
       if (res.ok) {
         setS((prev) => ({ ...prev, submitted: true, submitting: false, error: '' }));
         try {
