@@ -17,16 +17,14 @@ const FONT_COND = 'var(--font-barlow-condensed), sans-serif';
 const FONT_MONO = 'var(--font-plex-mono), monospace';
 
 // Business constants (were DC editor props in the prototype).
-const FINANCING_MONTHS = 24;
 const BIZ_PHONE = '(346) 680-3564';
 const BIZ_PHONE_HREF = 'tel:+13466803564';
-const FINANCE_OFFER = `$0 Down + No Interest for Up to ${FINANCING_MONTHS} Months`;
 const KEN_BURNS = true;
 
 const DRAFT_KEY = 'amr-funnel-draft';
 
 type State = {
-  screen: number; // 0 = intro, 1..5 = steps
+  screen: number; // 1..5 = steps (1 Concern, 2 Contact, 3 Timing, 4 Address, 5 Offers)
   submitted: boolean;
   concern: string | null;
   timing: string | null;
@@ -44,7 +42,7 @@ type State = {
 };
 
 const INITIAL: State = {
-  screen: 0,
+  screen: 1,
   submitted: false,
   concern: null,
   timing: null,
@@ -91,7 +89,6 @@ function persist(s: State) {
 const CONCERNS = [
   'Active leak or water stain',
   'Missing or damaged shingles',
-  'Recent storm, wind, or hail',
   'Roof is getting older',
   'Buying or selling a home',
   'General inspection',
@@ -135,7 +132,7 @@ const MOBILE_META: Meta[] = DESKTOP_META.map((m, i) =>
       : m,
 );
 
-// Photo layers. Slots 0 & 1 differ by breakpoint (CSS toggles which is shown).
+// Photo layers. Slot 1 differs by breakpoint (CSS toggles which is shown).
 type Layer = {
   slot: number;
   src: string;
@@ -146,10 +143,8 @@ type Layer = {
   priority?: boolean;
 };
 const LAYERS: Layer[] = [
-  { slot: 0, src: '/assets/desktop1.webp', alt: 'Verified five-star Google review: outstanding work, zero down', fit: 'contain', cls: 'only-desktop', priority: true },
-  { slot: 0, src: '/assets/mobile1.webp', alt: 'AMR crew installing a roof and posing on a completed job site', fit: 'cover', cls: 'only-mobile', priority: true },
-  { slot: 1, src: '/assets/roof-ridge.webp', alt: 'Ridge vent and shingles photographed during a roof inspection', fit: 'cover', cls: 'only-desktop' },
-  { slot: 1, src: '/assets/mobile2.webp', alt: 'Before and after: homeowners with their completed roof replacement', fit: 'contain', cls: 'only-mobile' },
+  { slot: 1, src: '/assets/roof-ridge.webp', alt: 'Ridge vent and shingles photographed during a roof inspection', fit: 'cover', cls: 'only-desktop', priority: true },
+  { slot: 1, src: '/assets/mobile2.webp', alt: 'Before and after: homeowners with their completed roof replacement', fit: 'contain', cls: 'only-mobile', priority: true },
   { slot: 2, src: '/assets/flashing.webp', alt: 'Roofer securing new flashing along a shingle ridge', fit: 'cover' },
   { slot: 3, src: '/assets/aerial.webp', alt: 'Aerial view of a completed American Master Roofing shingle roof', fit: 'contain' },
   { slot: 4, src: '/assets/yard-sign.webp', alt: 'Job site with $0-down financing yard sign in front of a re-roof in progress', fit: 'cover' },
@@ -178,7 +173,9 @@ export default function Funnel() {
       if (raw) {
         const d = JSON.parse(raw);
         if (d && typeof d === 'object') {
-          setS((prev) => ({ ...prev, ...d, submitted: false, error: '', submitting: false }));
+          // Clamp screen into the valid step range (old drafts may hold 0).
+          const screen = Math.min(5, Math.max(1, Number(d.screen) || 1));
+          setS((prev) => ({ ...prev, ...d, screen, submitted: false, error: '', submitting: false }));
         }
       }
     } catch {
@@ -194,8 +191,8 @@ export default function Funnel() {
     save({ [field]: e.target.value, error: '' } as Partial<State>);
 
   // ---- Navigation ----
-  const start = () => save({ screen: 1 });
-  const back = () => save({ screen: Math.max(0, s.screen - 1), error: '' });
+  // Flow: 1 Concern → 2 Contact → 3 Timing → 4 Address → 5 Offers → submit.
+  const back = () => save({ screen: Math.max(1, s.screen - 1), error: '' });
 
   const selectSingle = (field: 'concern' | 'timing', label: string, next: number) => {
     save({ [field]: label, error: '' } as Partial<State>);
@@ -207,13 +204,21 @@ export default function Funnel() {
     save({ offers: sel ? s.offers.filter((o) => o !== label) : s.offers.concat(label), error: '' });
   };
 
-  const next3 = () => {
-    if (s.address.trim().length < 5) return save({ error: 'Please enter your street address.' });
-    if (!/^\d{5}$/.test(s.zip.trim())) return save({ error: 'Please enter a valid 5-digit ZIP code.' });
-    save({ screen: 4, error: '' });
+  // Step 2 — validate contact fields before advancing.
+  const nextContact = () => {
+    if (!s.first.trim()) return save({ error: 'Please enter your first name.' });
+    if (!s.last.trim()) return save({ error: 'Please enter your last name.' });
+    if (s.phone.replace(/\D/g, '').length < 10) return save({ error: 'Please enter a valid mobile phone number.' });
+    if (!/^\S+@\S+\.\S+$/.test(s.email.trim())) return save({ error: 'Please enter a valid email address.' });
+    save({ screen: 3, error: '' });
   };
 
-  const next4 = () => save({ screen: 5, error: '' });
+  // Step 4 — validate address before advancing.
+  const nextAddress = () => {
+    if (s.address.trim().length < 5) return save({ error: 'Please enter your street address.' });
+    if (!/^\d{5}$/.test(s.zip.trim())) return save({ error: 'Please enter a valid 5-digit ZIP code.' });
+    save({ screen: 5, error: '' });
+  };
 
   const submit = async () => {
     if (!s.first.trim()) return save({ error: 'Please enter your first name.' });
@@ -544,130 +549,6 @@ export default function Funnel() {
           }}
         >
           <div style={{ maxWidth: 560, width: '100%', margin: 'auto' }}>
-            {/* ---- Intro ---- */}
-            {!s.submitted && s.screen === 0 && (
-              <div style={{ animation: 'stepIn .55s cubic-bezier(.22,1,.36,1) both' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    fontFamily: FONT_MONO,
-                    fontSize: '13.5px',
-                    letterSpacing: '0.14em',
-                    color: '#d7222b',
-                    animation: 'riseIn .5s .05s ease both',
-                  }}
-                >
-                  <span style={{ width: 9, height: 9, background: '#d7222b', display: 'inline-block' }} />
-                  HOUSTON, TX &middot; FREE ROOF INSPECTION
-                </div>
-                <h1
-                  style={{
-                    fontFamily: FONT_COND,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    fontSize: 'clamp(44px,5vw,64px)',
-                    lineHeight: 0.98,
-                    margin: '16px 0 14px',
-                    animation: 'riseIn .5s .1s ease both',
-                  }}
-                >
-                  Your roof, inspected free.
-                </h1>
-                <p
-                  style={{
-                    fontSize: '18.5px',
-                    lineHeight: 1.55,
-                    color: '#3a415a',
-                    margin: '0 0 20px',
-                    animation: 'riseIn .5s .16s ease both',
-                  }}
-                >
-                  A trained inspector walks your roof, photographs every finding, and gives you a straight answer:
-                  maintenance, repair, replacement — or nothing at all.
-                </p>
-                <div
-                  style={{
-                    border: '1px solid #e3e0d8',
-                    background: '#ffffff',
-                    borderRadius: '12px',
-                    padding: '14px 18px',
-                    marginBottom: '22px',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '4px 14px',
-                    alignItems: 'baseline',
-                    animation: 'riseIn .5s .22s ease both',
-                  }}
-                >
-                  <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', letterSpacing: '0.14em', color: '#d7222b' }}>
-                    LIMITED-TIME FINANCING
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: FONT_COND,
-                      fontWeight: 700,
-                      fontSize: '26px',
-                      textTransform: 'uppercase',
-                      color: '#1b2a5b',
-                    }}
-                  >
-                    {FINANCE_OFFER}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={start}
-                  className="amr-cta"
-                  style={{
-                    width: '100%',
-                    background: '#d7222b',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '18px 26px',
-                    fontFamily: FONT_BODY,
-                    fontWeight: 700,
-                    fontSize: '19px',
-                    cursor: 'pointer',
-                    boxShadow: '0 14px 34px rgba(215,34,43,0.35)',
-                    transition: 'transform .15s ease, background .15s ease',
-                    animation: 'riseIn .5s .28s ease both',
-                    minHeight: 44,
-                  }}
-                >
-                  Start My Free Inspection &rarr;
-                </button>
-                <div
-                  style={{
-                    textAlign: 'center',
-                    fontSize: '14.5px',
-                    color: '#5b6275',
-                    marginTop: '10px',
-                    animation: 'riseIn .5s .32s ease both',
-                  }}
-                >
-                  Under 60 seconds &middot; No pressure, no obligation
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px 20px',
-                    marginTop: '22px',
-                    animation: 'riseIn .5s .38s ease both',
-                  }}
-                >
-                  {['Every finding photo-documented', 'Insured & bonded', 'Warranties up to 50 years'].map((t) => (
-                    <div key={t} style={{ display: 'flex', gap: '8px', alignItems: 'baseline', fontSize: '15px', color: '#4a5165' }}>
-                      <span style={{ width: 6, height: 6, background: '#d7222b', flex: 'none' }} />
-                      {t}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* ---- Step 1: Concern ---- */}
             {!s.submitted && s.screen === 1 && (
@@ -687,14 +568,11 @@ export default function Funnel() {
                     {label}
                   </button>
                 ))}
-                <button type="button" onClick={back} style={backTextBtn}>
-                  &larr; Back
-                </button>
               </div>
             )}
 
-            {/* ---- Step 2: Timing ---- */}
-            {!s.submitted && s.screen === 2 && (
+            {/* ---- Step 3: Timing ---- */}
+            {!s.submitted && s.screen === 3 && (
               <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
                 {urgent && (
                   <div style={urgentBadge}>ACTIVE LEAK — WE&rsquo;LL PRIORITIZE YOUR REQUEST</div>
@@ -706,7 +584,7 @@ export default function Funnel() {
                     key={label}
                     type="button"
                     className="amr-option"
-                    onClick={() => selectSingle('timing', label, 3)}
+                    onClick={() => selectSingle('timing', label, 4)}
                     style={cardStyle(s.timing === label)}
                   >
                     {label}
@@ -718,8 +596,8 @@ export default function Funnel() {
               </div>
             )}
 
-            {/* ---- Step 3: Address ---- */}
-            {!s.submitted && s.screen === 3 && (
+            {/* ---- Step 4: Address ---- */}
+            {!s.submitted && s.screen === 4 && (
               <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
                 <h2 style={stepHeading}>Where should we inspect?</h2>
                 <p style={{ ...stepSub, margin: '0 0 16px' }}>
@@ -728,7 +606,7 @@ export default function Funnel() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    next3();
+                    nextAddress();
                   }}
                 >
                   <label htmlFor="f-address" className="sr-only">
@@ -789,8 +667,8 @@ export default function Funnel() {
               </div>
             )}
 
-            {/* ---- Step 4: Offers ---- */}
-            {!s.submitted && s.screen === 4 && (
+            {/* ---- Step 5: Offers (final step — submits the lead) ---- */}
+            {!s.submitted && s.screen === 5 && (
               <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
                 <h2 style={stepHeading}>Which options would you like us to explain?</h2>
                 <p style={stepSub}>
@@ -821,32 +699,74 @@ export default function Funnel() {
                     </button>
                   );
                 })}
+                {!!s.error && (
+                  <div role="alert" aria-live="polite" style={{ ...errorStyle, marginTop: '14px' }}>
+                    {s.error}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                   <button type="button" onClick={back} style={backBoxBtn}>
                     &larr; Back
                   </button>
-                  <button type="button" onClick={next4} className="amr-btn-primary" style={continueBtn}>
-                    Continue &rarr;
+                  <button
+                    type="button"
+                    onClick={submit}
+                    className="amr-submit"
+                    disabled={s.submitting}
+                    style={{
+                      flex: 1,
+                      background: '#d7222b',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '15px',
+                      fontFamily: FONT_BODY,
+                      fontWeight: 700,
+                      fontSize: '17.5px',
+                      cursor: s.submitting ? 'default' : 'pointer',
+                      opacity: s.submitting ? 0.75 : 1,
+                      boxShadow: '0 12px 28px rgba(215,34,43,0.3)',
+                      transition: 'transform .15s ease, background .15s ease',
+                      minHeight: 44,
+                    }}
+                  >
+                    {s.submitting ? 'Sending…' : 'Request My Free Roof Inspection'}
                   </button>
                 </div>
                 <p style={finePrint}>
                   Financing is subject to credit approval, lender terms, project eligibility, and promotional
                   conditions. Discount eligibility verification may be required.
                 </p>
+                <p style={{ ...finePrint, marginTop: '10px' }}>
+                  Submitting this request does not obligate you to purchase roofing services or apply for financing. By
+                  submitting, you agree that American Master Roofing may contact you by call or text regarding your
+                  inspection request. Consent is not a condition of purchase. Message and data rates may apply.
+                </p>
+                <details style={{ marginTop: '8px' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '13px', color: '#6a7186', fontWeight: 600 }}>
+                    Privacy Policy &amp; Terms
+                  </summary>
+                  <p style={{ fontSize: '13px', color: '#6a7186', lineHeight: 1.5, margin: '6px 0 0' }}>
+                    Information submitted through this page is used only to coordinate your inspection request and
+                    related follow-up by American Master Roofing; it is not sold to third parties. Free inspection
+                    carries no obligation to purchase. Warranty coverage depends on the selected roofing system and
+                    manufacturer terms. Discount availability and combinability may vary.
+                  </p>
+                </details>
               </div>
             )}
 
-            {/* ---- Step 5: Contact ---- */}
-            {!s.submitted && s.screen === 5 && (
+            {/* ---- Step 2: Contact ---- */}
+            {!s.submitted && s.screen === 2 && (
               <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <h2 style={stepHeading}>Last step — who are we scheduling for?</h2>
+                <h2 style={stepHeading}>Who are we scheduling for?</h2>
                 <p style={{ ...stepSub, margin: '0 0 16px' }}>
                   We&rsquo;ll call or text to confirm a time that works for you. That&rsquo;s the only reason we ask.
                 </p>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    submit();
+                    nextContact();
                   }}
                 >
                   {/* Honeypot — hidden from users, catches bots */}
@@ -925,47 +845,11 @@ export default function Funnel() {
                     <button type="button" onClick={back} style={backBoxBtn}>
                       &larr; Back
                     </button>
-                    <button
-                      type="submit"
-                      className="amr-submit"
-                      disabled={s.submitting}
-                      style={{
-                        flex: 1,
-                        background: '#d7222b',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '10px',
-                        padding: '15px',
-                        fontFamily: FONT_BODY,
-                        fontWeight: 700,
-                        fontSize: '17.5px',
-                        cursor: s.submitting ? 'default' : 'pointer',
-                        opacity: s.submitting ? 0.75 : 1,
-                        boxShadow: '0 12px 28px rgba(215,34,43,0.3)',
-                        transition: 'transform .15s ease, background .15s ease',
-                        minHeight: 44,
-                      }}
-                    >
-                      {s.submitting ? 'Sending…' : 'Request My Free Roof Inspection'}
+                    <button type="submit" className="amr-btn-primary" style={continueBtn}>
+                      Continue &rarr;
                     </button>
                   </div>
                 </form>
-                <p style={finePrint}>
-                  Submitting this request does not obligate you to purchase roofing services or apply for financing. By
-                  submitting, you agree that American Master Roofing may contact you by call or text regarding your
-                  inspection request. Consent is not a condition of purchase. Message and data rates may apply.
-                </p>
-                <details style={{ marginTop: '8px' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '13px', color: '#6a7186', fontWeight: 600 }}>
-                    Privacy Policy &amp; Terms
-                  </summary>
-                  <p style={{ fontSize: '13px', color: '#6a7186', lineHeight: 1.5, margin: '6px 0 0' }}>
-                    Information submitted through this page is used only to coordinate your inspection request and
-                    related follow-up by American Master Roofing; it is not sold to third parties. Free inspection
-                    carries no obligation to purchase. Warranty coverage depends on the selected roofing system and
-                    manufacturer terms. Discount availability and combinability may vary.
-                  </p>
-                </details>
               </div>
             )}
 
