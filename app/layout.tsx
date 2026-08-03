@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Barlow, Barlow_Condensed, IBM_Plex_Mono } from 'next/font/google';
+import MetaPixel from '@/components/MetaPixel';
 import './globals.css';
 
 const barlow = Barlow({
@@ -55,7 +56,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${barlow.variable} ${barlowCondensed.variable} ${plexMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <MetaPixel />
+        {children}
+      </body>
     </html>
   );
 }

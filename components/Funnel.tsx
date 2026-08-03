@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
+import { getAttribution } from '@/lib/attribution';
+import { fireLead, newEventId } from '@/lib/metaPixel';
 
 /* ---------------------------------------------------------------------------
    AMR Free Roof Inspection Funnel
@@ -187,6 +189,11 @@ export default function Funnel() {
     }
   }, []);
 
+  // Capture campaign attribution on first load (persists across the flow).
+  useEffect(() => {
+    getAttribution();
+  }, []);
+
   const activeIdx = s.submitted ? 6 : s.screen;
   const urgent = s.concern === 'Active leak or water stain';
 
@@ -216,7 +223,7 @@ export default function Funnel() {
 
   // Build the lead payload sent to /api/lead. `stage` distinguishes the early
   // first-touch capture ('contact') from the completed submission ('complete').
-  const buildPayload = (stage: 'contact' | 'complete') => ({
+  const buildPayload = (stage: 'contact' | 'complete', eventId?: string) => ({
     first: s.first,
     last: s.last,
     phone: s.phone,
@@ -230,13 +237,15 @@ export default function Funnel() {
     urgentLeak: urgent,
     stage,
     company: s.company, // honeypot
+    ...getAttribution(), // utm_*, fbclid, fbp, fbc
+    ...(eventId ? { fb_event_id: eventId } : {}),
   });
 
-  const postLead = (stage: 'contact' | 'complete') =>
+  const postLead = (stage: 'contact' | 'complete', eventId?: string) =>
     fetch('/api/lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(stage)),
+      body: JSON.stringify(buildPayload(stage, eventId)),
     });
 
   // Step 2 — validate contact fields, fire the first-touch capture, advance.
@@ -268,11 +277,18 @@ export default function Funnel() {
   const submit = async () => {
     if (!contactValid()) return save({ error: 'Please go back and complete your contact details.' });
 
+    const eventId = newEventId(); // generated at submission time; sent to GHL + used for Lead dedup
     setS((prev) => ({ ...prev, submitting: true, error: '' }));
     try {
-      const res = await postLead('complete');
+      const res = await postLead('complete', eventId);
       if (res.ok) {
         setS((prev) => ({ ...prev, submitted: true, submitting: false, error: '' }));
+        // Conversion confirmed by the server → fire Lead. Self-guarded + try/catch inside.
+        fireLead(
+          eventId,
+          { first: s.first, last: s.last, phone: s.phone, email: s.email, city: s.city, zip: s.zip },
+          'Free Roof Inspection Funnel',
+        );
         try {
           localStorage.removeItem(DRAFT_KEY);
         } catch {

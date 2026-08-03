@@ -98,6 +98,17 @@ export async function POST(req: NextRequest) {
   const offers = Array.isArray(body.offers) ? body.offers.filter((o) => typeof o === 'string') : [];
   const urgentLeak = body.urgentLeak === true || concern === 'Active leak or water stain';
 
+  // Attribution + Meta dedup id — all optional, forwarded as-is (never validated).
+  const utmSource = str(body.utm_source);
+  const utmMedium = str(body.utm_medium);
+  const utmCampaign = str(body.utm_campaign);
+  const utmContent = str(body.utm_content);
+  const utmTerm = str(body.utm_term);
+  const fbclid = str(body.fbclid);
+  const fbp = str(body.fbp);
+  const fbc = str(body.fbc);
+  const fbEventId = str(body.fb_event_id);
+
   // Contact fields are always required.
   if (!first) return bad('Please enter your first name.');
   if (!last) return bad('Please enter your last name.');
@@ -131,6 +142,15 @@ export async function POST(req: NextRequest) {
   if (concern) payload.concern = concern;
   if (timing) payload.timing = timing;
   if (offerInterests) payload.offerInterests = offerInterests;
+  if (utmSource) payload.utm_source = utmSource;
+  if (utmMedium) payload.utm_medium = utmMedium;
+  if (utmCampaign) payload.utm_campaign = utmCampaign;
+  if (utmContent) payload.utm_content = utmContent;
+  if (utmTerm) payload.utm_term = utmTerm;
+  if (fbclid) payload.fbclid = fbclid;
+  if (fbp) payload.fbp = fbp;
+  if (fbc) payload.fbc = fbc;
+  if (fbEventId) payload.fb_event_id = fbEventId;
 
   // 6) Forward to GoHighLevel
   const webhookUrl = process.env.GHL_WEBHOOK_URL;
