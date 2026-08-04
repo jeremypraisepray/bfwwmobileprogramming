@@ -71,7 +71,11 @@ export function fireLead(eventId: string, user: LeadUser, contentName: string) {
     am.st = 'tx';
     am.country = 'us';
 
-    fbq('init', PIXEL_ID, am);
+    // Set advanced matching AFTER load without re-initializing the pixel.
+    // Re-initializing here would silently disable the pixel and drop the Lead
+    // event; set userData is the supported post-load API. Values are raw
+    // (lowercased, unhashed) — the pixel hashes them client-side.
+    fbq('set', 'userData', PIXEL_ID, am);
     fbq('track', 'Lead', { content_name: contentName }, { eventID: eventId });
     markFired();
   } catch {
