@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { getAttribution } from '@/lib/attribution';
-import { fireLead, newEventId } from '@/lib/metaPixel';
+import { fireLead, newEventId, trackFunnelStep, trackViewContent } from '@/lib/metaPixel';
 
 /* ---------------------------------------------------------------------------
    AMR Free Roof Inspection Funnel
@@ -189,9 +189,11 @@ export default function Funnel() {
     }
   }, []);
 
-  // Capture campaign attribution on first load (persists across the flow).
+  // Capture campaign attribution on first load (persists across the flow),
+  // and fire ViewContent for the landing view (step 1).
   useEffect(() => {
     getAttribution();
+    trackViewContent('Free Roof Inspection Funnel');
   }, []);
 
   const activeIdx = s.submitted ? 6 : s.screen;
@@ -207,6 +209,7 @@ export default function Funnel() {
 
   const selectSingle = (field: 'concern' | 'timing', label: string, next: number) => {
     save({ [field]: label, error: '' } as Partial<State>);
+    trackFunnelStep(next);
     setTimeout(() => save({ screen: next }), 240);
   };
 
@@ -263,6 +266,7 @@ export default function Funnel() {
         /* best-effort; the final submit will still create the lead */
       });
     }
+    trackFunnelStep(3);
     save({ screen: 3, error: '' });
   };
 
@@ -270,6 +274,7 @@ export default function Funnel() {
   const nextAddress = () => {
     if (s.address.trim().length < 5) return save({ error: 'Please enter your street address.' });
     if (!/^\d{5}$/.test(s.zip.trim())) return save({ error: 'Please enter a valid 5-digit ZIP code.' });
+    trackFunnelStep(5);
     save({ screen: 5, error: '' });
   };
 
@@ -278,17 +283,22 @@ export default function Funnel() {
     if (!contactValid()) return save({ error: 'Please go back and complete your contact details.' });
 
     const eventId = newEventId(); // generated at submission time; sent to GHL + used for Lead dedup
+
+    // Fire the browser Lead immediately, independent of the network result — a
+    // webhook/CAPI failure must never cost the conversion. The same eventId is
+    // sent to the server so the CAPI Lead deduplicates against this one.
+    // Self-guarded (in-memory + sessionStorage) so it can't double-fire.
+    fireLead(
+      eventId,
+      { first: s.first, last: s.last, phone: s.phone, email: s.email, city: s.city, zip: s.zip },
+      'Free Roof Inspection Funnel',
+    );
+
     setS((prev) => ({ ...prev, submitting: true, error: '' }));
     try {
       const res = await postLead('complete', eventId);
       if (res.ok) {
         setS((prev) => ({ ...prev, submitted: true, submitting: false, error: '' }));
-        // Conversion confirmed by the server → fire Lead. Self-guarded + try/catch inside.
-        fireLead(
-          eventId,
-          { first: s.first, last: s.last, phone: s.phone, email: s.email, city: s.city, zip: s.zip },
-          'Free Roof Inspection Funnel',
-        );
         try {
           localStorage.removeItem(DRAFT_KEY);
         } catch {

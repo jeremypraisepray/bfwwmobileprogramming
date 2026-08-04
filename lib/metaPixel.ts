@@ -33,11 +33,43 @@ function markFired() {
   }
 }
 
+function getFbq(): ((...a: unknown[]) => void) | null {
+  const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
+  return typeof fbq === 'function' ? fbq : null;
+}
+
 function normalizePhone(raw?: string): string {
   const d = (raw || '').replace(/\D/g, '');
   if (d.length === 10) return `1${d}`;
   if (d.length === 11 && d.startsWith('1')) return d;
   return d;
+}
+
+let viewContentFired = false;
+
+// Fire once when the funnel is first viewed (step 1 / landing). Browser only.
+export function trackViewContent(contentName: string) {
+  try {
+    if (!PIXEL_ID || viewContentFired) return;
+    const fbq = getFbq();
+    if (!fbq) return;
+    viewContentFired = true;
+    fbq('track', 'ViewContent', { content_name: contentName });
+  } catch {
+    /* ignore */
+  }
+}
+
+// Custom intermediate signal fired on each forward advance. Browser only.
+export function trackFunnelStep(step: number) {
+  try {
+    if (!PIXEL_ID) return;
+    const fbq = getFbq();
+    if (!fbq) return;
+    fbq('trackCustom', 'FunnelStep', { step });
+  } catch {
+    /* ignore */
+  }
 }
 
 export type LeadUser = {

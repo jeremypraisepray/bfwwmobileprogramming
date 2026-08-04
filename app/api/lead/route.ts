@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash, randomUUID } from 'node:crypto';
 
 /* ---------------------------------------------------------------------------
    POST /api/lead
@@ -7,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
    - Never exposes GoHighLevel (LeadConnector) credentials to the browser.
    - Forwards a normalized payload to the GHL Inbound Webhook (Option A) at
      process.env.GHL_WEBHOOK_URL.
+   - Mirrors the conversion to the Meta Conversions API (server-side), keyed by
+     the same fb_event_id the browser pixel used so Meta deduplicates them.
    - Honeypot bot trap, server-side validation, and basic in-memory rate limit.
 
    Runs on the Node.js runtime (needs env access + outbound fetch).
@@ -14,6 +17,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// ---- Meta Conversions API (server-only env; never NEXT_PUBLIC_) -------------
+const META_CAPI_ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
+const META_DATASET_ID = process.env.META_DATASET_ID;
+const META_TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE;
+const GRAPH_VERSION = 'v21.0';
 
 // ---- Basic in-memory rate limiting -----------------------------------------
 // Per-instance only (serverless instances aren't shared), so this is a
@@ -58,6 +67,110 @@ function toE164(raw: string): string {
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+function sha256(v: string): string {
+  return createHash('sha256').update(v).digest('hex');
+}
+
+// Meta normalization (trim + lowercase) then SHA-256 hex. Empty → undefined.
+function hashed(v: string): string | undefined {
+  const t = (v || '').trim().toLowerCase();
+  return t ? sha256(t) : undefined;
+}
+
+type CapiArgs = {
+  stage: 'contact' | 'complete';
+  eventId: string;
+  first: string;
+  last: string;
+  email: string;
+  phoneDigits: string; // E.164 digits, no '+'
+  city: string;
+  zip: string;
+  fbp: string;
+  fbc: string;
+  concern: string;
+  timing: string;
+  offers: string[];
+  clientIp: string;
+  userAgent: string;
+  sourceUrl: string;
+};
+
+// Server-side Conversions API event. Deduplicates against the browser pixel via
+// event_id. Best-effort: never throws, never blocks lead delivery, never logs
+// the access token or raw PII.
+async function sendCapiEvent(a: CapiArgs): Promise<void> {
+  try {
+    if (!META_CAPI_ACCESS_TOKEN || !META_DATASET_ID) {
+      console.warn(
+        `Meta Conversions API not configured (${
+          !META_CAPI_ACCESS_TOKEN ? 'META_CAPI_ACCESS_TOKEN' : 'META_DATASET_ID'
+        } missing) — skipping server event; GoHighLevel delivery is unaffected.`,
+      );
+      return;
+    }
+
+    const userData: Record<string, unknown> = {};
+    const em = hashed(a.email);
+    if (em) userData.em = em;
+    if (a.phoneDigits) userData.ph = sha256(a.phoneDigits);
+    const fn = hashed(a.first);
+    if (fn) userData.fn = fn;
+    const ln = hashed(a.last);
+    if (ln) userData.ln = ln;
+    const ct = hashed(a.city);
+    if (ct) userData.ct = ct;
+    if (a.zip) userData.zp = sha256(a.zip.trim().toLowerCase());
+    userData.st = sha256('tx');
+    userData.country = sha256('us');
+    // Unhashed by design:
+    if (a.fbp) userData.fbp = a.fbp;
+    if (a.fbc) userData.fbc = a.fbc;
+    if (a.clientIp && a.clientIp !== 'unknown') userData.client_ip_address = a.clientIp;
+    if (a.userAgent) userData.client_user_agent = a.userAgent;
+
+    const customData: Record<string, unknown> = { content_name: 'Free Roof Inspection Funnel' };
+    if (a.concern) customData.concern = a.concern;
+    if (a.timing) customData.timing = a.timing;
+    if (a.offers.length) customData.offers = a.offers.join(', ');
+
+    const event: Record<string, unknown> = {
+      event_name: a.stage === 'complete' ? 'Lead' : 'Contact',
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: a.eventId,
+      action_source: 'website',
+      user_data: userData,
+      custom_data: customData,
+    };
+    if (a.sourceUrl) event.event_source_url = a.sourceUrl;
+
+    const requestBody: Record<string, unknown> = {
+      data: [event],
+      access_token: META_CAPI_ACCESS_TOKEN,
+    };
+    if (META_TEST_EVENT_CODE) requestBody.test_event_code = META_TEST_EVENT_CODE;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+    try {
+      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${META_DATASET_ID}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        // Log status only — never the token or PII.
+        console.error(`Meta Conversions API returned status ${res.status}.`);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (err) {
+    console.error('Meta Conversions API request failed:', err instanceof Error ? err.message : 'error');
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -188,6 +301,30 @@ export async function POST(req: NextRequest) {
       { status: 502 },
     );
   }
+
+  // 7) Mirror the conversion to the Meta Conversions API (server-side).
+  //    'complete' → Lead, reusing the browser's fb_event_id so Meta dedupes the
+  //    two. 'contact' → a separate Contact event with its own server event id
+  //    (never the complete-stage id). Best-effort: never blocks the response.
+  const capiEventId = stage === 'complete' ? fbEventId || randomUUID() : randomUUID();
+  await sendCapiEvent({
+    stage,
+    eventId: capiEventId,
+    first,
+    last,
+    email,
+    phoneDigits: phone.replace(/\D/g, ''), // '+1XXXXXXXXXX' → '1XXXXXXXXXX'
+    city,
+    zip,
+    fbp,
+    fbc,
+    concern,
+    timing,
+    offers,
+    clientIp: clientIp(req),
+    userAgent: req.headers.get('user-agent') || '',
+    sourceUrl: req.headers.get('referer') || '',
+  });
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
