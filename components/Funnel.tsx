@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { getAttribution } from '@/lib/attribution';
 import { fireLead, newEventId, trackFunnelStep, trackViewContent } from '@/lib/metaPixel';
+import { fireTikTokLead } from '@/lib/tiktokPixel';
 
 /* ---------------------------------------------------------------------------
    AMR Free Roof Inspection Funnel
@@ -293,6 +294,8 @@ export default function Funnel() {
       { first: s.first, last: s.last, phone: s.phone, email: s.email, city: s.city, zip: s.zip },
       'Free Roof Inspection Funnel',
     );
+    // TikTok conversion — independent of Meta (uses ttq); shares the event id.
+    fireTikTokLead(eventId, { phone: s.phone, email: s.email }, 'Free Roof Inspection Funnel');
 
     setS((prev) => ({ ...prev, submitting: true, error: '' }));
     try {

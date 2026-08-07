@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Barlow, Barlow_Condensed, IBM_Plex_Mono } from 'next/font/google';
 import MetaPixel from '@/components/MetaPixel';
+import TikTokPixel from '@/components/TikTokPixel';
 import './globals.css';
 
 const barlow = Barlow({
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body>
         <MetaPixel />
+        <TikTokPixel />
         {children}
       </body>
     </html>
