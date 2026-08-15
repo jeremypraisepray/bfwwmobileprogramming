@@ -63,7 +63,15 @@ export function fireTikTokLead(eventId: string, user: TikTokUser, contentName: s
 
     // event_id shared with the Meta event id so a future TikTok Events API call
     // can deduplicate against this browser event.
-    ttq.track('SubmitForm', { content_name: contentName }, { event_id: eventId });
+    ttq.track(
+      'SubmitForm',
+      {
+        contents: [{ content_id: 'roof-inspection', content_name: contentName }],
+        value: 0,
+        currency: 'USD',
+      },
+      { event_id: eventId },
+    );
     markFired();
   } catch {
     /* tracking must never block the funnel */
