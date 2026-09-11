@@ -4,6 +4,31 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { getAttribution, wasNewPaidClick } from '@/lib/attribution';
+import {
+  BUSINESS,
+  CLAIM_FINANCING,
+  CLAIM_SHINGLES,
+  CLAIM_WARRANTY,
+  CONSENT_PRIVACY_URL,
+  CONSENT_TERMS_URL,
+  CONSENT_TEXT,
+  CONSENT_TEXT_VERSION,
+  CRED_24H,
+  CRED_BBB,
+  CRED_FREE,
+  CRED_GOOGLE,
+  CRED_INSURED,
+  CRED_OWENS_CORNING,
+  CRED_ROOFS,
+  CRED_SINCE,
+  CRED_YEARS,
+  FINANCING_DISCLAIMER,
+  LOGO_BBB,
+  LOGO_GOOGLE,
+  LOGO_OWENS_CORNING,
+  PRICE_FROM,
+  PRICE_QUALIFIER,
+} from '@/lib/claims';
 import { fireGoogleAdsConversion } from '@/lib/googleAds';
 import { fireLead, newEventId, trackFunnelStep, trackViewContent } from '@/lib/metaPixel';
 import { fireTikTokLead } from '@/lib/tiktokPixel';
@@ -20,9 +45,9 @@ const FONT_BODY = 'var(--font-barlow), sans-serif';
 const FONT_COND = 'var(--font-barlow-condensed), sans-serif';
 const FONT_MONO = 'var(--font-plex-mono), monospace';
 
-// Business constants (were DC editor props in the prototype).
-const BIZ_PHONE = '(346) 680-3564';
-const BIZ_PHONE_HREF = 'tel:+13466803564';
+// Business constants — single source of truth lives in lib/claims.ts.
+const BIZ_PHONE = BUSINESS.phoneDisplay;
+const BIZ_PHONE_HREF = BUSINESS.phoneHref;
 const KEN_BURNS = true;
 
 const DRAFT_KEY = 'amr-funnel-draft';
@@ -41,6 +66,7 @@ type State = {
   phone: string;
   email: string;
   company: string; // honeypot — never persisted, never shown
+  consentAt: string; // ISO timestamp when the TCPA box was checked ('' = unchecked); never persisted
   error: string;
   submitting: boolean;
 };
@@ -59,6 +85,7 @@ const INITIAL: State = {
   phone: '',
   email: '',
   company: '',
+  consentAt: '',
   error: '',
   submitting: false,
 };
@@ -218,6 +245,14 @@ export default function Funnel() {
     trackViewContent('Free Roof Inspection Funnel');
   }, []);
 
+  // Credential logos that 404'd before hydration never fire onError — sweep
+  // and hide any already-failed image so a missing file can't render broken.
+  useEffect(() => {
+    document.querySelectorAll<HTMLImageElement>('img[data-cred-logo]').forEach((img) => {
+      if (img.complete && img.naturalWidth === 0) img.style.display = 'none';
+    });
+  }, [s.screen, s.submitted]);
+
   const activeIdx = s.submitted ? 6 : s.screen;
   const urgent = s.concern === 'Active leak or water stain';
 
@@ -262,6 +297,11 @@ export default function Funnel() {
     urgentLeak: urgent,
     stage,
     hp_field: s.company, // honeypot (field renamed so autofill can't match it)
+    // TCPA consent record — version string pairs with CONSENT_TEXT in lib/claims.ts.
+    consent_given: !!s.consentAt,
+    consent_timestamp: s.consentAt,
+    consent_text_version: CONSENT_TEXT_VERSION,
+    consent_page_url: typeof window !== 'undefined' ? window.location.href : '',
     ...getAttribution(), // utm_*, fbclid, fbp, fbc
     ...(eventId ? { fb_event_id: eventId } : {}),
   });
@@ -279,6 +319,8 @@ export default function Funnel() {
     if (!s.last.trim()) return save({ error: 'Please enter your last name.' });
     if (s.phone.replace(/\D/g, '').length < 10) return save({ error: 'Please enter a valid mobile phone number.' });
     if (!/^\S+@\S+\.\S+$/.test(s.email.trim())) return save({ error: 'Please enter a valid email address.' });
+    // TCPA: the button is disabled until checked; this guards Enter-key submits too.
+    if (!s.consentAt) return save({ error: 'Please check the consent box above the button so we can contact you.' });
 
     // Fire-and-forget: capture the lead now so it isn't lost if they drop off.
     // Sent once per session; the final submit updates the same contact in GHL.
@@ -668,6 +710,59 @@ export default function Funnel() {
                     {label}
                   </button>
                 ))}
+
+                {/* Credentials & pricing — substantiates the ad claims on the
+                    landing step, in the funnel's own editorial voice. Claim
+                    wording is real DOM text (from lib/claims.ts); logos are
+                    supporting imagery only. */}
+                <div style={{ borderTop: '1px solid #eceae3', marginTop: 24, paddingTop: 18 }}>
+                  <div style={monoKicker}>
+                    <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
+                    AMERICAN MASTER ROOFING · CREDENTIALS
+                  </div>
+                  {[
+                    { src: LOGO_OWENS_CORNING, alt: 'Owens Corning', text: CRED_OWENS_CORNING },
+                    { src: LOGO_BBB, alt: 'Better Business Bureau', text: CRED_BBB },
+                    { src: LOGO_GOOGLE, alt: 'Google', text: CRED_GOOGLE },
+                  ].map((row) => (
+                    <div key={row.text} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 9px' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={row.src}
+                        alt={row.alt}
+                        width={20}
+                        height={20}
+                        data-cred-logo
+                        style={{ objectFit: 'contain', flex: 'none' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <span style={{ fontSize: '15.5px', fontWeight: 600, color: '#1b2a5b' }}>{row.text}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', marginTop: 10 }}>
+                    {[CRED_ROOFS, CRED_YEARS, CRED_SINCE, CRED_INSURED, CRED_24H, CRED_FREE].map((t) => (
+                      <div key={t} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '15px', color: '#4a5165' }}>
+                        <span style={{ width: 6, height: 6, background: '#d7222b', flex: 'none' }} />
+                        {t}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ ...monoKicker, margin: '18px 0 8px' }}>
+                    <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
+                    PRICING & FINANCING
+                  </div>
+                  <p style={{ fontSize: '15px', color: '#4a5165', lineHeight: 1.55, margin: '0 0 6px' }}>
+                    <strong style={{ color: '#1b2a5b', fontWeight: 600 }}>{PRICE_FROM}.</strong> {PRICE_QUALIFIER}{' '}
+                    {CLAIM_FINANCING}
+                  </p>
+                  <p style={{ fontSize: '15px', color: '#4a5165', lineHeight: 1.55, margin: '0 0 10px' }}>
+                    {CLAIM_SHINGLES}. {CLAIM_WARRANTY}.
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#5b6275', lineHeight: 1.5, margin: 0 }}>{FINANCING_DISCLAIMER}</p>
+                </div>
               </div>
             )}
 
@@ -833,9 +928,8 @@ export default function Funnel() {
                     {s.submitting ? 'Sending…' : 'Request My Free Roof Inspection'}
                   </button>
                 </div>
-                <p style={finePrint}>
-                  Financing is subject to credit approval, lender terms, project eligibility, and promotional
-                  conditions. Discount eligibility verification may be required.
+                <p style={{ ...finePrint, color: '#5b6275' }}>
+                  {FINANCING_DISCLAIMER} Discount eligibility verification may be required.
                 </p>
                 <p style={{ ...finePrint, marginTop: '10px' }}>
                   Submitting this request does not obligate you to purchase roofing services or apply for financing. By
@@ -944,11 +1038,54 @@ export default function Funnel() {
                       {s.error}
                     </div>
                   )}
+
+                  {/* TCPA consent — verbatim copy from lib/claims.ts, unchecked by
+                      default, never persisted; the button stays disabled until checked. */}
+                  <label
+                    htmlFor="f-consent"
+                    style={{
+                      display: 'flex',
+                      gap: 10,
+                      alignItems: 'flex-start',
+                      marginTop: 14,
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      color: '#5b6275',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <input
+                      id="f-consent"
+                      type="checkbox"
+                      checked={!!s.consentAt}
+                      onChange={(e) =>
+                        setS((prev) => ({
+                          ...prev,
+                          consentAt: e.target.checked ? new Date().toISOString() : '',
+                          error: '',
+                        }))
+                      }
+                      style={{ width: 18, height: 18, flex: 'none', marginTop: 1, accentColor: '#1b2a5b' }}
+                    />
+                    <span>
+                      <ConsentCopy />
+                    </span>
+                  </label>
+
                   <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                     <button type="button" onClick={back} style={backBoxBtn}>
                       &larr; Back
                     </button>
-                    <button type="submit" className="amr-btn-primary" style={continueBtn}>
+                    <button
+                      type="submit"
+                      className="amr-btn-primary"
+                      disabled={!s.consentAt}
+                      style={{
+                        ...continueBtn,
+                        opacity: s.consentAt ? 1 : 0.55,
+                        cursor: s.consentAt ? 'pointer' : 'default',
+                      }}
+                    >
                       Continue &rarr;
                     </button>
                   </div>
@@ -1105,23 +1242,30 @@ export default function Funnel() {
           </div>
         </div>
 
-        {/* Footer strip */}
+        {/* Footer strip — carries the physical business address (required when
+            financing is advertised) and service area, in the same quiet voice. */}
         <div
           style={{
             flex: 'none',
             padding: '12px 24px',
             borderTop: '1px solid #eceae3',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px 18px',
-            justifyContent: 'space-between',
             fontSize: '13px',
             color: '#6a7186',
             background: '#ffffff',
           }}
         >
-          <span>&copy; 2026 American Master Roofing &middot; Houston, TX</span>
-          <span>Free inspection &middot; No obligation to purchase</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 18px', justifyContent: 'space-between' }}>
+            <span>
+              &copy; 2026 {BUSINESS.name} &middot; {BUSINESS.addressLine} &middot;{' '}
+              <a href={BUSINESS.phoneHref} style={{ color: '#1b2a5b', textDecoration: 'none', fontWeight: 600 }}>
+                {BUSINESS.phoneDisplay}
+              </a>
+            </span>
+            <span>Free inspection &middot; No obligation to purchase</span>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            Serving Greater Houston &amp; surrounding areas: {BUSINESS.serviceAreas}
+          </div>
         </div>
       </div>
     </div>
@@ -1155,6 +1299,40 @@ const finePrint: CSSProperties = {
   lineHeight: 1.5,
   margin: '14px 0 0',
 };
+const monoKicker: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  fontFamily: FONT_MONO,
+  fontSize: '11.5px',
+  letterSpacing: '0.14em',
+  color: '#6a7186',
+  marginBottom: 12,
+};
+
+// Renders CONSENT_TEXT verbatim, resolving only the [Privacy Policy]/[Terms]
+// placeholders into links — the rendered copy is derived from the constant, so
+// it cannot drift from the logged consent_text_version.
+function ConsentCopy() {
+  return (
+    <>
+      {CONSENT_TEXT.split(/(\[Privacy Policy\]|\[Terms\])/).map((part, i) =>
+        part === '[Privacy Policy]' ? (
+          <a key={i} href={CONSENT_PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+            Privacy Policy
+          </a>
+        ) : part === '[Terms]' ? (
+          <a key={i} href={CONSENT_TERMS_URL} target="_blank" rel="noopener noreferrer">
+            Terms
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 const urgentBadge: CSSProperties = {
   display: 'inline-block',
   background: '#fdeceb',

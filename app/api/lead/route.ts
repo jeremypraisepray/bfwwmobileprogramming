@@ -236,6 +236,12 @@ export async function POST(req: NextRequest) {
   const referrer = str(body.referrer);
   const capturedAt = str(body.captured_at);
 
+  // TCPA consent record (see lib/claims.ts for the paired text + version).
+  const consentGiven = body.consent_given === true;
+  const consentTimestamp = str(body.consent_timestamp);
+  const consentTextVersion = str(body.consent_text_version);
+  const consentPageUrl = str(body.consent_page_url);
+
   // Contact fields are always required.
   if (!first) return bad('Please enter your first name.');
   if (!last) return bad('Please enter your last name.');
@@ -284,6 +290,10 @@ export async function POST(req: NextRequest) {
   if (landingPage) payload.landing_page = landingPage;
   if (referrer) payload.referrer = referrer;
   if (capturedAt) payload.captured_at = capturedAt;
+  payload.consent_given = consentGiven; // always sent, true/false
+  if (consentTimestamp) payload.consent_timestamp = consentTimestamp;
+  if (consentTextVersion) payload.consent_text_version = consentTextVersion;
+  if (consentPageUrl) payload.consent_page_url = consentPageUrl;
 
   // 6) Forward to GoHighLevel
   const webhookUrl = process.env.GHL_WEBHOOK_URL;
