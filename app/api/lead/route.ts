@@ -224,7 +224,6 @@ export async function POST(req: NextRequest) {
   const gclid = str(body.gclid);
   const gbraid = str(body.gbraid);
   const wbraid = str(body.wbraid);
-  const utmMatchtype = str(body.utm_matchtype);
   const landingPage = str(body.landing_page);
   const referrer = str(body.referrer);
   const capturedAt = str(body.captured_at);
@@ -274,7 +273,6 @@ export async function POST(req: NextRequest) {
   if (gclid) payload.gclid = gclid;
   if (gbraid) payload.gbraid = gbraid;
   if (wbraid) payload.wbraid = wbraid;
-  if (utmMatchtype) payload.utm_matchtype = utmMatchtype;
   if (landingPage) payload.landing_page = landingPage;
   if (referrer) payload.referrer = referrer;
   if (capturedAt) payload.captured_at = capturedAt;

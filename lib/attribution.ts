@@ -15,7 +15,6 @@ export type Attribution = {
   utm_campaign: string;
   utm_content: string;
   utm_term: string;
-  utm_matchtype: string;
   fbclid: string;
   fbp: string;
   fbc: string;
@@ -33,7 +32,6 @@ const EMPTY: Attribution = {
   utm_campaign: '',
   utm_content: '',
   utm_term: '',
-  utm_matchtype: '',
   fbclid: '',
   fbp: '',
   fbc: '',
@@ -120,7 +118,6 @@ export function getAttribution(): Attribution {
     utm_campaign: firstTouch('utm_campaign'),
     utm_content: firstTouch('utm_content'),
     utm_term: firstTouch('utm_term'),
-    utm_matchtype: firstTouch('utm_matchtype'),
     fbclid,
     fbp,
     fbc,
