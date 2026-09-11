@@ -190,8 +190,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400 });
   }
 
-  // 3) Honeypot — bots fill the hidden "company" field. Pretend success and drop.
-  if (str(body.company)) {
+  // 3) Honeypot — bots fill the hidden field. Pretend success and drop, but
+  // LOG it so drops are visible in Vercel function logs (a silently dropped
+  // real lead is otherwise invisible). "company" is the legacy field name from
+  // bundles cached before the rename; no PII is logged.
+  if (str(body.hp_field) || str(body.company)) {
+    console.warn(
+      `Honeypot triggered — submission dropped (stage: ${str(body.stage) || 'unknown'}, field: ${
+        str(body.hp_field) ? 'hp_field' : 'company'
+      }).`,
+    );
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 

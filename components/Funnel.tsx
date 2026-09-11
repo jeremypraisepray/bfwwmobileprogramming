@@ -261,7 +261,7 @@ export default function Funnel() {
     offers: s.offers,
     urgentLeak: urgent,
     stage,
-    company: s.company, // honeypot
+    hp_field: s.company, // honeypot (field renamed so autofill can't match it)
     ...getAttribution(), // utm_*, fbclid, fbp, fbc
     ...(eventId ? { fb_event_id: eventId } : {}),
   });
@@ -869,12 +869,15 @@ export default function Funnel() {
                     nextContact();
                   }}
                 >
-                  {/* Honeypot — hidden from users, catches bots */}
+                  {/* Honeypot — hidden from users, catches bots. Deliberately
+                      named so browser autofill heuristics (which match on
+                      name/id/label keywords like "company"/"organization")
+                      never fill it and silently kill a real lead. */}
                   <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
-                    <label htmlFor="f-company">Company</label>
+                    <label htmlFor="f-hp-field">Leave this field empty</label>
                     <input
-                      id="f-company"
-                      name="company"
+                      id="f-hp-field"
+                      name="hp_field"
                       tabIndex={-1}
                       autoComplete="off"
                       value={s.company}
