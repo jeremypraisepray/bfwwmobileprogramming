@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
-import { getAttribution } from '@/lib/attribution';
+import { getAttribution, wasNewPaidClick } from '@/lib/attribution';
+import { fireGoogleAdsConversion } from '@/lib/googleAds';
 import { fireLead, newEventId, trackFunnelStep, trackViewContent } from '@/lib/metaPixel';
 import { fireTikTokLead } from '@/lib/tiktokPixel';
 
@@ -160,6 +161,9 @@ const PHOTO_SIZES = '(max-width: 859px) 100vw, 45vw';
 export default function Funnel() {
   const [s, setS] = useState<State>(INITIAL);
 
+  // Brief "picking up where you left off" indicator for organic resumes.
+  const [resumeNotice, setResumeNotice] = useState(false);
+
   // Guards the one-time "first-touch" lead capture at Step 2 so we don't
   // re-fire it if the user steps back and forward again.
   const capturedRef = useRef(false);
@@ -174,15 +178,32 @@ export default function Funnel() {
   }, []);
 
   // Restore draft on mount (client-only; avoids hydration mismatch).
+  // A fresh Google click id (new paid session) resets the funnel to Step 1
+  // instead of resuming mid-form; typed answers are kept so a returning
+  // visitor's fields are still prefilled. Organic returners resume where they
+  // left off with a brief notice.
   useEffect(() => {
     try {
+      const freshPaidClick = wasNewPaidClick();
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
         if (d && typeof d === 'object') {
-          // Clamp screen into the valid step range (old drafts may hold 0).
-          const screen = Math.min(5, Math.max(1, Number(d.screen) || 1));
-          setS((prev) => ({ ...prev, ...d, screen, submitted: false, error: '', submitting: false }));
+          if (freshPaidClick) {
+            setS((prev) => {
+              const next = { ...prev, ...d, screen: 1, submitted: false, error: '', submitting: false };
+              persist(next); // stick to Step 1 on any refresh of this session
+              return next;
+            });
+          } else {
+            // Clamp screen into the valid step range (old drafts may hold 0).
+            const screen = Math.min(5, Math.max(1, Number(d.screen) || 1));
+            setS((prev) => ({ ...prev, ...d, screen, submitted: false, error: '', submitting: false }));
+            if (screen > 1) {
+              setResumeNotice(true);
+              setTimeout(() => setResumeNotice(false), 4500);
+            }
+          }
         }
       }
     } catch {
@@ -302,6 +323,10 @@ export default function Funnel() {
       const res = await postLead('complete', eventId);
       if (res.ok) {
         setS((prev) => ({ ...prev, submitted: true, submitting: false, error: '' }));
+        // Google Ads conversion — ONLY on a confirmed successful submission
+        // (per campaign requirements), never on load/steps/failures. Keyed to
+        // the submission id and self-guarded against double-firing.
+        fireGoogleAdsConversion(eventId);
         try {
           localStorage.removeItem(DRAFT_KEY);
         } catch {
@@ -603,6 +628,27 @@ export default function Funnel() {
           }}
         >
           <div style={{ maxWidth: 560, width: '100%', margin: 'auto' }}>
+            {/* Brief indicator when an organic returning visitor resumes mid-flow */}
+            {resumeNotice && !s.submitted && (
+              <div
+                role="status"
+                style={{
+                  display: 'inline-block',
+                  background: '#ffffff',
+                  border: '1px solid #e3e0d8',
+                  color: '#6a7186',
+                  fontFamily: FONT_MONO,
+                  fontSize: '12.5px',
+                  letterSpacing: '0.12em',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  marginBottom: '12px',
+                  animation: 'capIn .4s ease both',
+                }}
+              >
+                PICKING UP WHERE YOU LEFT OFF
+              </div>
+            )}
 
             {/* ---- Step 1: Concern ---- */}
             {!s.submitted && s.screen === 1 && (

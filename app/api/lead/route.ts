@@ -221,6 +221,13 @@ export async function POST(req: NextRequest) {
   const fbp = str(body.fbp);
   const fbc = str(body.fbc);
   const fbEventId = str(body.fb_event_id);
+  const gclid = str(body.gclid);
+  const gbraid = str(body.gbraid);
+  const wbraid = str(body.wbraid);
+  const utmMatchtype = str(body.utm_matchtype);
+  const landingPage = str(body.landing_page);
+  const referrer = str(body.referrer);
+  const capturedAt = str(body.captured_at);
 
   // Contact fields are always required.
   if (!first) return bad('Please enter your first name.');
@@ -264,6 +271,13 @@ export async function POST(req: NextRequest) {
   if (fbp) payload.fbp = fbp;
   if (fbc) payload.fbc = fbc;
   if (fbEventId) payload.fb_event_id = fbEventId;
+  if (gclid) payload.gclid = gclid;
+  if (gbraid) payload.gbraid = gbraid;
+  if (wbraid) payload.wbraid = wbraid;
+  if (utmMatchtype) payload.utm_matchtype = utmMatchtype;
+  if (landingPage) payload.landing_page = landingPage;
+  if (referrer) payload.referrer = referrer;
+  if (capturedAt) payload.captured_at = capturedAt;
 
   // 6) Forward to GoHighLevel
   const webhookUrl = process.env.GHL_WEBHOOK_URL;
