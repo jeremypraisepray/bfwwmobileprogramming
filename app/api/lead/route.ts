@@ -17,6 +17,8 @@ import { createHash, randomUUID } from 'node:crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Headroom for the GHL retry (2 × 8s worst case) + the CAPI call's 5s timeout.
+export const maxDuration = 30;
 
 // ---- Meta Conversions API (server-only env; never NEXT_PUBLIC_) -------------
 const META_CAPI_ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
@@ -27,7 +29,10 @@ const GRAPH_VERSION = 'v21.0';
 // ---- Basic in-memory rate limiting -----------------------------------------
 // Per-instance only (serverless instances aren't shared), so this is a
 // best-effort guard against bursts / naive scripts — not a distributed limiter.
-const RATE_LIMIT_MAX = 5; // requests
+// 20/min: each completing visitor makes 2 requests (contact + complete), and
+// mobile carriers put many visitors behind one shared IP — 5/min was tight
+// enough to reject legitimate paid traffic. Still low enough to blunt scripts.
+const RATE_LIMIT_MAX = 20; // requests
 const RATE_LIMIT_WINDOW_MS = 60_000; // per 60s per IP
 const hits = new Map<string, number[]>();
 
@@ -306,26 +311,47 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  try {
+  // One retry on network failures or 5xx so a transient GHL blip doesn't lose
+  // the lead. 4xx is never retried — that signals a config/payload problem.
+  const attemptGhlPost = async (): Promise<Response> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      console.error('GHL webhook returned non-OK status:', res.status);
-      return NextResponse.json(
-        { ok: false, error: 'Something went wrong sending your request. Please try again.' },
-        { status: 502 },
-      );
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      return await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
     }
-  } catch (err) {
-    console.error('Failed to reach GHL webhook:', err);
+  };
+
+  let ghlRes: Response | null = null;
+  let ghlErr: unknown = null;
+  for (let i = 0; i < 2; i++) {
+    try {
+      ghlRes = await attemptGhlPost();
+      if (ghlRes.status < 500) break; // delivered (2xx) or non-retryable (4xx)
+      console.warn(`GHL webhook attempt ${i + 1} returned ${ghlRes.status}.`);
+    } catch (err) {
+      ghlErr = err;
+      ghlRes = null;
+      console.warn(`GHL webhook attempt ${i + 1} failed to connect.`);
+    }
+    if (i === 0) await new Promise((r) => setTimeout(r, 600));
+  }
+
+  if (!ghlRes) {
+    console.error('Failed to reach GHL webhook after retry:', ghlErr);
+    return NextResponse.json(
+      { ok: false, error: 'Something went wrong sending your request. Please try again.' },
+      { status: 502 },
+    );
+  }
+  if (!ghlRes.ok) {
+    console.error('GHL webhook returned non-OK status:', ghlRes.status);
     return NextResponse.json(
       { ok: false, error: 'Something went wrong sending your request. Please try again.' },
       { status: 502 },
