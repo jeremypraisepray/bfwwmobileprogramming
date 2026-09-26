@@ -185,7 +185,7 @@ const PHOTO_SIZES = '45vw';
 // stacked in the header and cross-fade, so the next step's photo is already
 // loaded by the time it's needed.
 const MOBILE_HEROES: { slot: number; src: string; alt: string; pos: string }[] = [
-  { slot: 1, src: '/assets/hdr-concern.webp', alt: 'American Master Roofing crew re-roofing a Houston home', pos: '62% 30%' },
+  { slot: 1, src: '/assets/hdr-concern.webp', alt: 'Completed roof with a copper-capped dormer on a brick home', pos: '70% 35%' },
   { slot: 2, src: '/assets/hdr-contact.webp', alt: 'The American Master Roofing team on a Houston job site', pos: '50% 35%' },
   { slot: 3, src: '/assets/hdr-timing.webp', alt: 'An American Master Roofing inspector walking a property with the homeowner', pos: '42% 40%' },
   { slot: 4, src: '/assets/hdr-address.webp', alt: 'Aerial view of a completed shingle roof', pos: '50% 50%' },
@@ -646,6 +646,7 @@ export default function Funnel() {
               aria-hidden={!on}
               fill
               sizes="100vw"
+              quality={90}
               priority={h.slot === 1}
               className={on ? 'm-layer on' : 'm-layer'}
               style={{ objectPosition: h.pos }}
@@ -857,42 +858,44 @@ export default function Funnel() {
                 {financingFine()}
 
                 {/* Credentials & pricing — the full claim wording (from
-                    lib/claims.ts). On phones this sits just below the fold;
-                    the short-form credentials are on the photo above. */}
+                    lib/claims.ts). Phones already show the credentials on the
+                    photo, so there only the pricing paragraph appears. */}
                 <div style={{ borderTop: '1px solid #eceae3', marginTop: 22, paddingTop: 18 }}>
-                  <div style={monoKicker}>
-                    <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
-                    AMERICAN MASTER ROOFING · CREDENTIALS
-                  </div>
-                  {[
-                    { src: LOGO_OWENS_CORNING, alt: 'Owens Corning', text: CRED_OWENS_CORNING },
-                    { src: LOGO_BBB, alt: 'Better Business Bureau', text: CRED_BBB },
-                    { src: LOGO_GOOGLE, alt: 'Google', text: CRED_GOOGLE },
-                  ].map((row) => (
-                    <div key={row.text} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 9px' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={row.src}
-                        alt={row.alt}
-                        width={20}
-                        height={20}
-                        data-cred-logo
-                        style={{ objectFit: 'contain', flex: 'none' }}
-                        onError={hideOnError}
-                      />
-                      <span style={{ fontSize: '15.5px', fontWeight: 600, color: '#1b2a5b' }}>{row.text}</span>
+                  <div className="only-desktop">
+                    <div style={monoKicker}>
+                      <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
+                      AMERICAN MASTER ROOFING · CREDENTIALS
                     </div>
-                  ))}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', marginTop: 10 }}>
-                    {[CRED_ROOFS, CRED_YEARS, CRED_SINCE, CRED_INSURED, CRED_24H, CRED_FREE].map((t) => (
-                      <div key={t} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '15px', color: '#4a5165' }}>
-                        <span style={{ width: 6, height: 6, background: '#d7222b', flex: 'none' }} />
-                        {t}
+                    {[
+                      { src: LOGO_OWENS_CORNING, alt: 'Owens Corning', text: CRED_OWENS_CORNING },
+                      { src: LOGO_BBB, alt: 'Better Business Bureau', text: CRED_BBB },
+                      { src: LOGO_GOOGLE, alt: 'Google', text: CRED_GOOGLE },
+                    ].map((row) => (
+                      <div key={row.text} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 9px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={row.src}
+                          alt={row.alt}
+                          width={20}
+                          height={20}
+                          data-cred-logo
+                          style={{ objectFit: 'contain', flex: 'none' }}
+                          onError={hideOnError}
+                        />
+                        <span style={{ fontSize: '15.5px', fontWeight: 600, color: '#1b2a5b' }}>{row.text}</span>
                       </div>
                     ))}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', marginTop: 10 }}>
+                      {[CRED_ROOFS, CRED_YEARS, CRED_SINCE, CRED_INSURED, CRED_24H, CRED_FREE].map((t) => (
+                        <div key={t} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '15px', color: '#4a5165' }}>
+                          <span style={{ width: 6, height: 6, background: '#d7222b', flex: 'none' }} />
+                          {t}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div style={{ ...monoKicker, margin: '18px 0 8px' }}>
+                  <div className="amr-pricing-kicker" style={monoKicker}>
                     <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
                     PRICING & FINANCING
                   </div>

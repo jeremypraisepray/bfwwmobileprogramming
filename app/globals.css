@@ -811,6 +811,15 @@ input::placeholder {
   }
 }
 
+.amr-pricing-kicker {
+  margin: 18px 0 8px !important;
+}
+@media (max-width: 859px) {
+  .amr-pricing-kicker {
+    margin-top: 0 !important;
+  }
+}
+
 /* ---- Interactive hover states (mirror the prototype's style-hover) ---- */
 @media (hover: hover) {
   .amr-cta:not(:disabled):hover {
