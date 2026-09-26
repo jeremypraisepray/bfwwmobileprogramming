@@ -22,6 +22,13 @@ export const CRED_BBB = 'BBB A+ Rated · Accredited Business';
 export const CRED_GOOGLE = '5-Star Google Reviews';
 export const CRED_ROOFS = '1,500+ Roofs Replaced across Houston';
 
+// Short forms for the mobile hero's credential strip (same claims, fewer words).
+export const CRED_OWENS_CORNING_SHORT = 'Owens Corning Preferred';
+export const CRED_BBB_SHORT = 'BBB A+ Accredited';
+export const CRED_GOOGLE_SHORT = '5-Star Google Reviews';
+export const CRED_ROOFS_SHORT = '1,500+ Houston roofs';
+export const HERO_KICKER = 'Houston · Since 1999 · No obligation';
+
 // ---- Credentials (secondary) ------------------------------------------------
 export const CRED_YEARS = '25+ Years Experience';
 export const CRED_SINCE = 'Roofing Houston since 1999';
@@ -31,13 +38,21 @@ export const CRED_24H = 'Inspection within 24 hours';
 
 // ---- Product & warranty ------------------------------------------------------
 export const CLAIM_SHINGLES = 'Owens Corning architectural shingles with manufacturer warranty';
-export const CLAIM_WARRANTY = '30-year warranty covering labor and materials, per warranty terms';
+export const CLAIM_WARRANTY = '50-year warranty covering labor and materials, per warranty terms';
+export const CLAIM_WARRANTY_SHORT = '50-year warranty';
 
 // ---- Pricing -----------------------------------------------------------------
 export const PRICE_FROM = 'Roof replacement from $7,995';
 export const PRICE_QUALIFIER =
   'Final pricing depends on roof size, pitch, materials, and scope of work — your written estimate is free and non-binding.';
 export const CLAIM_FINANCING = '$0-down and no-interest financing options available.*';
+// Hero offer tag: the asterisk points to FINANCING_EXAMPLE in the fine print.
+export const OFFER_DOWN = '$0 down';
+export const OFFER_MONTHLY = 'Payments as low as $99/mo*';
+
+// ---- Payment example — VERBATIM (owner-supplied), do not edit wording -------
+export const FINANCING_EXAMPLE =
+  '*Payments as low as $99/mo. Example based on approved financing; APR, term and amount financed vary by applicant. Subject to credit approval. See lender for complete terms.';
 
 // ---- Financing disclaimer — VERBATIM, do not edit wording --------------------
 export const FINANCING_DISCLAIMER =
@@ -56,3 +71,4 @@ export const CONSENT_TERMS_URL = 'https://americanmasteroofing.com/?page_id=4614
 export const LOGO_OWENS_CORNING = '/assets/logo-owens-corning.png';
 export const LOGO_BBB = '/assets/logo-bbb.png';
 export const LOGO_GOOGLE = '/assets/logo-google.png';
+export const LOGO_AMR = '/assets/logo-trim.png';

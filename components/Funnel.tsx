@@ -9,23 +9,33 @@ import {
   CLAIM_FINANCING,
   CLAIM_SHINGLES,
   CLAIM_WARRANTY,
+  CLAIM_WARRANTY_SHORT,
   CONSENT_PRIVACY_URL,
   CONSENT_TERMS_URL,
   CONSENT_TEXT,
   CONSENT_TEXT_VERSION,
   CRED_24H,
   CRED_BBB,
+  CRED_BBB_SHORT,
   CRED_FREE,
   CRED_GOOGLE,
+  CRED_GOOGLE_SHORT,
   CRED_INSURED,
   CRED_OWENS_CORNING,
+  CRED_OWENS_CORNING_SHORT,
   CRED_ROOFS,
+  CRED_ROOFS_SHORT,
   CRED_SINCE,
   CRED_YEARS,
   FINANCING_DISCLAIMER,
+  FINANCING_EXAMPLE,
+  HERO_KICKER,
+  LOGO_AMR,
   LOGO_BBB,
   LOGO_GOOGLE,
   LOGO_OWENS_CORNING,
+  OFFER_DOWN,
+  OFFER_MONTHLY,
   PRICE_FROM,
   PRICE_QUALIFIER,
 } from '@/lib/claims';
@@ -35,9 +45,10 @@ import { fireTikTokLead } from '@/lib/tiktokPixel';
 
 /* ---------------------------------------------------------------------------
    AMR Free Roof Inspection Funnel
-   One client component holds all funnel state. Styling is inline to preserve
-   pixel-for-pixel fidelity with the approved prototype; responsive layout and
-   hover/focus/reduced-motion behavior live in globals.css.
+   One client component holds all funnel state. Desktop keeps the side photo
+   panel; on phones each step opens with a full-bleed photo header carrying the
+   question, and the step sits on a sheet sized to fit one screen without
+   scrolling. Responsive layout and component styling live in globals.css.
 --------------------------------------------------------------------------- */
 
 // Fonts (loaded via next/font/google in app/layout.tsx, exposed as CSS vars).
@@ -144,7 +155,8 @@ const OFFERS = [
   "I'm not sure yet",
 ];
 
-// Per-slot photo caption metadata (index = screen; 6 = confirmation).
+
+// Per-slot photo caption metadata for the desktop panel (index = screen; 6 = confirmation).
 type Meta = { label: string; tag: string };
 const DESKTOP_META: Meta[] = [
   { label: 'VERIFIED GOOGLE REVIEW · 5 STARS', tag: 'HOUSTON, TX' },
@@ -155,27 +167,11 @@ const DESKTOP_META: Meta[] = [
   { label: 'COMPLETED SYSTEM · DETAIL', tag: 'HOUSTON, TX' },
   { label: 'BEFORE / AFTER · FULL REPLACEMENT', tag: 'THANK YOU' },
 ];
-const MOBILE_META: Meta[] = DESKTOP_META.map((m, i) =>
-  i === 0
-    ? { label: 'THE AMR CREW · ON THE JOB', tag: 'HOUSTON, TX' }
-    : i === 1
-      ? { label: 'BEFORE / AFTER · HAPPY HOMEOWNER', tag: 'THANK YOU' }
-      : m,
-);
 
-// Photo layers. Slot 1 differs by breakpoint (CSS toggles which is shown).
-type Layer = {
-  slot: number;
-  src: string;
-  alt: string;
-  fit: 'cover' | 'contain';
-  pos?: string;
-  cls?: string; // 'only-desktop' | 'only-mobile'
-  priority?: boolean;
-};
+// Desktop photo panel layers (hidden on phones, where the step header takes over).
+type Layer = { slot: number; src: string; alt: string; fit: 'cover' | 'contain'; pos?: string };
 const LAYERS: Layer[] = [
-  { slot: 1, src: '/assets/roof-ridge.webp', alt: 'Ridge vent and shingles photographed during a roof inspection', fit: 'cover', cls: 'only-desktop', priority: true },
-  { slot: 1, src: '/assets/mobile2.webp', alt: 'Before and after: homeowners with their completed roof replacement', fit: 'contain', cls: 'only-mobile', priority: true },
+  { slot: 1, src: '/assets/roof-ridge.webp', alt: 'Ridge vent and shingles photographed during a roof inspection', fit: 'cover' },
   { slot: 2, src: '/assets/flashing.webp', alt: 'Roofer securing new flashing along a shingle ridge', fit: 'cover' },
   { slot: 3, src: '/assets/aerial.webp', alt: 'Aerial view of a completed American Master Roofing shingle roof', fit: 'contain' },
   { slot: 4, src: '/assets/yard-sign.webp', alt: 'Job site with $0-down financing yard sign in front of a re-roof in progress', fit: 'cover' },
@@ -183,7 +179,113 @@ const LAYERS: Layer[] = [
   { slot: 6, src: '/assets/before-after.webp', alt: 'Before and after of a completed full roof replacement', fit: 'contain' },
 ];
 
-const PHOTO_SIZES = '(max-width: 859px) 100vw, 45vw';
+const PHOTO_SIZES = '45vw';
+
+// Phone step headers — graded crops, one per step (6 = confirmation). All are
+// stacked in the header and cross-fade, so the next step's photo is already
+// loaded by the time it's needed.
+const MOBILE_HEROES: { slot: number; src: string; alt: string; pos: string }[] = [
+  { slot: 1, src: '/assets/hdr-concern.webp', alt: 'American Master Roofing crew re-roofing a Houston home', pos: '62% 30%' },
+  { slot: 2, src: '/assets/hdr-contact.webp', alt: 'The American Master Roofing team on a Houston job site', pos: '50% 35%' },
+  { slot: 3, src: '/assets/hdr-timing.webp', alt: 'An American Master Roofing inspector walking a property with the homeowner', pos: '42% 40%' },
+  { slot: 4, src: '/assets/hdr-address.webp', alt: 'Aerial view of a completed shingle roof', pos: '50% 50%' },
+  { slot: 5, src: '/assets/hdr-offers.webp', alt: 'Roofer securing new flashing on a shingle roof', pos: '50% 45%' },
+  { slot: 6, src: '/assets/hdr-done.webp', alt: 'Homeowners in front of their new roof', pos: '50% 30%' },
+];
+
+const HERO_KICKERS: Record<number, string> = {
+  2: 'Step 2 of 5 · Meet your Houston team',
+  3: 'Step 3 of 5 · We walk it with you',
+  4: 'Step 4 of 5 · We study your roofline first',
+  5: `Step 5 of 5 · Backed by a ${CLAIM_WARRANTY_SHORT}`,
+  6: 'Another happy homeowner · Houston',
+};
+
+const STEP_Q: Record<number, string> = {
+  1: 'What’s going on with your roof?',
+  2: 'Who’s the inspection for?',
+  3: 'When should we come out?',
+  4: 'Where’s the property?',
+  5: 'Anything we should cover?',
+};
+
+// Line icons for the concern tiles (keyed by the exact answer label).
+const svgProps = {
+  viewBox: '0 0 24 24',
+  width: 20,
+  height: 20,
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+};
+const CONCERN_ICONS: Record<string, JSX.Element> = {
+  'Active leak or water stain': (
+    <svg {...svgProps}>
+      <path d="M12 3.2c3 4.1 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 3-6.9 6-11z" />
+      <path d="M9.4 15.3a2.8 2.8 0 0 0 2.4 2.3" />
+    </svg>
+  ),
+  'Missing or damaged shingles': (
+    <svg {...svgProps}>
+      <rect x="3" y="4.5" width="8" height="5.5" rx="1" />
+      <rect x="13" y="4.5" width="8" height="5.5" rx="1" />
+      <rect x="3" y="12.5" width="8" height="5.5" rx="1" />
+      <rect x="13.5" y="13.8" width="8" height="5.5" rx="1" transform="rotate(14 17.5 16.5)" />
+    </svg>
+  ),
+  'Roof is getting older': (
+    <svg {...svgProps}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.2 2" />
+    </svg>
+  ),
+  'Buying or selling a home': (
+    <svg {...svgProps}>
+      <path d="M3.5 11 12 4.5l8.5 6.5V20h-17z" />
+      <path d="M9.8 20v-5.2h4.4V20" />
+    </svg>
+  ),
+  'General inspection': (
+    <svg {...svgProps}>
+      <rect x="5.5" y="4.5" width="13" height="16" rx="2" />
+      <path d="M9 4.5h6v3H9z" />
+      <path d="m9 13.5 2.2 2.2 4-4.2" />
+    </svg>
+  ),
+  "I'm not sure": (
+    <svg {...svgProps}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6" />
+      <circle cx="12" cy="16.6" r="0.6" fill="currentColor" />
+    </svg>
+  ),
+};
+
+const PhoneIcon = () => (
+  <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinejoin="round" aria-hidden>
+    <path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.6 5.5a2 2 0 0 1 2-2z" />
+  </svg>
+);
+const CheckIcon = ({ size = 11 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+const PinIcon = () => (
+  <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z" />
+    <circle cx="12" cy="10" r="2.3" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+// Credential logos: a file that fails to load hides itself rather than
+// rendering broken; the claim wording is always DOM text.
+const hideOnError = (e: { currentTarget: HTMLImageElement }) => {
+  e.currentTarget.style.display = 'none';
+};
 
 export default function Funnel() {
   const [s, setS] = useState<State>(INITIAL);
@@ -390,100 +492,56 @@ export default function Funnel() {
     }
   };
 
-  // ---- Shared styles ----
-  const cardStyle = (sel: boolean): CSSProperties => ({
-    display: 'block',
-    width: '100%',
-    textAlign: 'left',
-    boxSizing: 'border-box',
-    padding: '16px 20px',
-    marginBottom: '9px',
-    minHeight: 44,
-    borderRadius: '10px',
-    cursor: 'pointer',
-    fontFamily: FONT_BODY,
-    fontSize: '17.5px',
-    fontWeight: 600,
-    lineHeight: 1.25,
-    color: sel ? '#fff' : '#18213d',
-    background: sel ? '#1b2a5b' : '#ffffff',
-    border: sel ? '2px solid #1b2a5b' : '2px solid #e3e0d8',
-    transition: 'background .15s ease, border-color .15s ease, transform .15s ease',
-  });
-
-  const inputStyle: CSSProperties = {
-    display: 'block',
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '15px 16px',
-    marginBottom: '9px',
-    borderRadius: '10px',
-    border: '2px solid #e3e0d8',
-    fontFamily: FONT_BODY,
-    fontSize: '17px',
-    color: '#18213d',
-    background: '#fff',
-    minHeight: 44,
-  };
-  const inputFlexStyle: CSSProperties = { ...inputStyle, flex: 1, width: 'auto', minWidth: 0 };
-  const zipStyle: CSSProperties = { ...inputStyle, flex: 'none', width: '112px' };
-
-  const backTextBtn: CSSProperties = {
-    background: 'none',
-    border: 'none',
-    color: '#6a7186',
-    fontFamily: FONT_BODY,
-    fontSize: '15.5px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    padding: '10px 0',
-    minHeight: 44,
-    display: 'inline-flex',
-    alignItems: 'center',
-  };
-  const backBoxBtn: CSSProperties = {
-    flex: 'none',
-    background: '#ffffff',
-    border: '2px solid #e3e0d8',
-    borderRadius: '10px',
-    padding: '13px 16px',
-    fontFamily: FONT_BODY,
-    fontSize: '16.5px',
-    fontWeight: 600,
-    color: '#5b6275',
-    cursor: 'pointer',
-    minHeight: 44,
-  };
-  const continueBtn: CSSProperties = {
-    flex: 1,
-    background: '#d7222b',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '10px',
-    padding: '14px',
-    fontFamily: FONT_BODY,
-    fontWeight: 700,
-    fontSize: '17.5px',
-    cursor: 'pointer',
-    minHeight: 44,
-    transition: 'transform .15s ease, background .15s ease',
-  };
-
   const showProgress = !s.submitted && s.screen > 0;
   const stepPct = Math.round((s.screen / 5) * 100) + '%';
+  const doneTitle = `Request received${s.first.trim() ? `, ${s.first.trim()}` : ''}`;
 
-  const captionBar = (meta: Meta, cls: string) => (
+  // Segmented progress (phones — desktop keeps its progress bar above).
+  const seg = (
+    <div className="m-only">
+      <div className="amr-seg" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <i key={n} className={n <= s.screen ? 'on' : undefined} />
+        ))}
+      </div>
+    </div>
+  );
+
+  // Question heading in the column on desktop (phones carry it on the photo).
+  const deskHeading = (text: string) => (
+    <h2 className="only-desktop" style={stepHeading}>
+      {text}
+    </h2>
+  );
+
+  const deskBack = (
+    <button type="button" onClick={back} className="amr-backlink only-desktop">
+      &larr; Back
+    </button>
+  );
+
+  // Payment example + financing disclaimer, both verbatim from lib/claims.ts.
+  const financingFine = (extra?: string) => (
+    <p className="amr-fine">
+      {FINANCING_EXAMPLE} {FINANCING_DISCLAIMER}
+      {extra ? ` ${extra}` : ''}
+    </p>
+  );
+
+  const errorBox = !!s.error && (
+    <div role="alert" aria-live="polite" style={errorStyle}>
+      {s.error}
+    </div>
+  );
+
+  const captionBar = (meta: Meta) => (
     <div
-      className={cls}
       style={{
         position: 'absolute',
         left: 0,
         right: 0,
         bottom: 0,
         padding: '16px 20px',
-        justifyContent: 'space-between',
-        gap: '12px',
-        alignItems: 'baseline',
       }}
     >
       <div
@@ -527,9 +585,9 @@ export default function Funnel() {
 
   return (
     <div className="amr-root">
-      {/* ---------------- Photo panel ---------------- */}
+      {/* ---------------- Desktop photo panel ---------------- */}
       <div className="amr-photo-panel">
-        {LAYERS.map((l, i) => {
+        {LAYERS.map((l) => {
           const active = l.slot === activeIdx;
           const style: CSSProperties = {
             objectFit: l.fit,
@@ -541,18 +599,7 @@ export default function Funnel() {
             transition: 'opacity .9s ease, transform 7s ease-out',
             willChange: 'opacity, transform',
           };
-          return (
-            <Image
-              key={i}
-              className={`kb-img ${l.cls || ''}`.trim()}
-              src={l.src}
-              alt={l.alt}
-              fill
-              sizes={PHOTO_SIZES}
-              style={style}
-              priority={l.priority}
-            />
-          );
+          return <Image key={l.slot} className="kb-img" src={l.src} alt={l.alt} fill sizes={PHOTO_SIZES} style={style} />;
         })}
 
         {/* Dark gradient overlay */}
@@ -565,9 +612,7 @@ export default function Funnel() {
           }}
         />
 
-        {/* Bottom caption bars (breakpoint-specific text, CSS-toggled) */}
-        {captionBar(DESKTOP_META[activeIdx], 'only-desktop')}
-        {captionBar(MOBILE_META[activeIdx], 'only-mobile')}
+        {captionBar(DESKTOP_META[activeIdx])}
 
         {/* Top strip */}
         <div
@@ -589,87 +634,179 @@ export default function Funnel() {
         </div>
       </div>
 
-      {/* ---------------- Content column ---------------- */}
-      <div className="amr-content">
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '14px',
-            padding: '14px 24px',
-            borderBottom: '1px solid #eceae3',
-            background: '#ffffff',
-            flex: 'none',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/assets/logo.png"
-            alt="American Master Roofing"
-            style={{ height: 58, width: 'auto', margin: '-8px 0' }}
-          />
-          <a
-            href={BIZ_PHONE_HREF}
-            style={{
-              textDecoration: 'none',
-              fontWeight: 700,
-              fontSize: '17px',
-              color: '#1b2a5b',
-              whiteSpace: 'nowrap',
-              minHeight: 44,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            Call {BIZ_PHONE}
+      {/* ---------------- Phone photo header ---------------- */}
+      <header className={`m-hero is-${activeIdx}`}>
+        {MOBILE_HEROES.map((h) => {
+          const on = h.slot === activeIdx;
+          return (
+            <Image
+              key={h.slot}
+              src={h.src}
+              alt={on ? h.alt : ''}
+              aria-hidden={!on}
+              fill
+              sizes="100vw"
+              priority={h.slot === 1}
+              className={on ? 'm-layer on' : 'm-layer'}
+              style={{ objectPosition: h.pos }}
+            />
+          );
+        })}
+
+        <div className="m-top">
+          <div className="m-top-l">
+            {!s.submitted && s.screen > 1 && (
+              <button type="button" className="m-back" onClick={back} aria-label="Back to the previous step">
+                <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M14.5 5.5 8 12l6.5 6.5" />
+                </svg>
+              </button>
+            )}
+            <span className="m-logo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={LOGO_AMR} alt="American Master Roofing" width={268} height={120} />
+            </span>
+          </div>
+          <a className="m-call" href={BIZ_PHONE_HREF}>
+            <PhoneIcon />
+            {activeIdx === 1 ? BIZ_PHONE : 'Call'}
           </a>
         </div>
 
-        {/* Progress bar */}
-        {showProgress && (
-          <div style={{ padding: '14px 24px 0', flex: 'none' }}>
-            <div
+        <div className="m-copy">
+          {activeIdx === 1 ? (
+            <>
+              <div className="m-kick">
+                <i />
+                {HERO_KICKER}
+              </div>
+              <h1 className="m-h1">
+                Free roof
+                <br />
+                inspection
+              </h1>
+              <div className="m-offer">
+                <b>{OFFER_DOWN}</b>
+                <span>{OFFER_MONTHLY}</span>
+              </div>
+              <ul className="m-glass" aria-label="Credentials">
+                <li>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={LOGO_OWENS_CORNING} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+                  {CRED_OWENS_CORNING_SHORT}
+                </li>
+                <li>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={LOGO_BBB} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+                  {CRED_BBB_SHORT}
+                </li>
+                <li>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={LOGO_GOOGLE} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+                  {CRED_GOOGLE_SHORT}
+                </li>
+                <li>
+                  <span className="m-sq" />
+                  {CRED_ROOFS_SHORT}
+                </li>
+              </ul>
+            </>
+          ) : activeIdx === 6 ? (
+            <>
+              <div className="m-kick">
+                <i />
+                {HERO_KICKERS[6]}
+              </div>
+              <div className="m-done">
+                <span className="m-tick">
+                  <CheckIcon size={20} />
+                </span>
+                <h2 className="m-q">{doneTitle}</h2>
+              </div>
+            </>
+          ) : (
+            <>
+              {activeIdx === 3 && urgent && <div className="m-urgent">Active leak · Priority scheduling</div>}
+              <div className="m-kick">
+                <i />
+                {HERO_KICKERS[activeIdx]}
+              </div>
+              <h2 className="m-q">{STEP_Q[activeIdx]}</h2>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* ---------------- Content column ---------------- */}
+      <div className="amr-content">
+        {/* Desktop header + progress (phones carry both in the photo header) */}
+        <div className="only-desktop" style={{ flex: 'none' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '14px',
+              padding: '14px 24px',
+              borderBottom: '1px solid #eceae3',
+              background: '#ffffff',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO_AMR} alt="American Master Roofing" style={{ height: 40, width: 'auto' }} />
+            <a
+              href={BIZ_PHONE_HREF}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'baseline',
-                fontFamily: FONT_MONO,
-                fontSize: '13px',
-                letterSpacing: '0.12em',
-                color: '#6a7186',
-                marginBottom: '8px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '17px',
+                color: '#1b2a5b',
+                whiteSpace: 'nowrap',
+                minHeight: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
               }}
             >
-              <span>STEP {s.screen} OF 5</span>
-              <span style={{ color: '#d7222b' }}>{stepPct}</span>
-            </div>
-            <div style={{ height: 5, background: '#eceae3', borderRadius: 3, overflow: 'hidden' }}>
+              Call {BIZ_PHONE}
+            </a>
+          </div>
+
+          {showProgress && (
+            <div style={{ padding: '14px 24px 0' }}>
               <div
                 style={{
-                  height: 5,
-                  background: '#d7222b',
-                  borderRadius: 3,
-                  width: `${(s.screen / 5) * 100}%`,
-                  transition: 'width .5s cubic-bezier(.22,1,.36,1)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  fontFamily: FONT_MONO,
+                  fontSize: '13px',
+                  letterSpacing: '0.12em',
+                  color: '#6a7186',
+                  marginBottom: '8px',
                 }}
-              />
+              >
+                <span>STEP {s.screen} OF 5</span>
+                <span style={{ color: '#d7222b' }}>{stepPct}</span>
+              </div>
+              <div style={{ height: 5, background: '#eceae3', borderRadius: 3, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: 5,
+                    background: '#d7222b',
+                    borderRadius: 3,
+                    width: `${(s.screen / 5) * 100}%`,
+                    transition: 'width .5s cubic-bezier(.22,1,.36,1)',
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Scrollable step area */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '28px 24px',
-          }}
-        >
-          <div style={{ maxWidth: 560, width: '100%', margin: 'auto' }}>
+        {/* Step area — scrolls inside the column on desktop; on phones it is the
+            sheet under the photo header and the page itself scrolls. */}
+        <div className="amr-steparea">
+          <div className="amr-stepinner">
             {/* Brief indicator when an organic returning visitor resumes mid-flow */}
             {resumeNotice && !s.submitted && (
               <div
@@ -680,11 +817,11 @@ export default function Funnel() {
                   border: '1px solid #e3e0d8',
                   color: '#6a7186',
                   fontFamily: FONT_MONO,
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   letterSpacing: '0.12em',
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
-                  marginBottom: '12px',
+                  marginBottom: '10px',
                   animation: 'capIn .4s ease both',
                 }}
               >
@@ -694,28 +831,35 @@ export default function Funnel() {
 
             {/* ---- Step 1: Concern ---- */}
             {!s.submitted && s.screen === 1 && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <h2 style={stepHeading}>What made you want your roof inspected?</h2>
-                <p style={stepSub}>
-                  Choose whatever fits best — you don&rsquo;t need to be sure. Finding out is what the inspection is for.
-                </p>
-                {CONCERNS.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="amr-option"
-                    onClick={() => selectSingle('concern', label, 2)}
-                    style={cardStyle(s.concern === label)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="amr-step">
+                <div className="m-only">
+                  <div className="amr-mrow">
+                    <span>STEP 1 OF 5</span>
+                    <span>UNDER 60 SECONDS</span>
+                  </div>
+                </div>
+                {seg}
+                <h2 className="amr-q1">{STEP_Q[1]}</h2>
+                <p className="amr-sub">Pick the closest match. The inspection finds the rest.</p>
+                <div className="amr-tiles">
+                  {CONCERNS.map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={s.concern === label ? 'amr-tile is-sel' : 'amr-tile'}
+                      onClick={() => selectSingle('concern', label, 2)}
+                    >
+                      <span className="amr-tile-ic">{CONCERN_ICONS[label]}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+                {financingFine()}
 
-                {/* Credentials & pricing — substantiates the ad claims on the
-                    landing step, in the funnel's own editorial voice. Claim
-                    wording is real DOM text (from lib/claims.ts); logos are
-                    supporting imagery only. */}
-                <div style={{ borderTop: '1px solid #eceae3', marginTop: 24, paddingTop: 18 }}>
+                {/* Credentials & pricing — the full claim wording (from
+                    lib/claims.ts). On phones this sits just below the fold;
+                    the short-form credentials are on the photo above. */}
+                <div style={{ borderTop: '1px solid #eceae3', marginTop: 22, paddingTop: 18 }}>
                   <div style={monoKicker}>
                     <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
                     AMERICAN MASTER ROOFING · CREDENTIALS
@@ -734,9 +878,7 @@ export default function Funnel() {
                         height={20}
                         data-cred-logo
                         style={{ objectFit: 'contain', flex: 'none' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
+                        onError={hideOnError}
                       />
                       <span style={{ fontSize: '15.5px', fontWeight: 600, color: '#1b2a5b' }}>{row.text}</span>
                     </div>
@@ -758,203 +900,19 @@ export default function Funnel() {
                     <strong style={{ color: '#1b2a5b', fontWeight: 600 }}>{PRICE_FROM}.</strong> {PRICE_QUALIFIER}{' '}
                     {CLAIM_FINANCING}
                   </p>
-                  <p style={{ fontSize: '15px', color: '#4a5165', lineHeight: 1.55, margin: '0 0 10px' }}>
+                  <p style={{ fontSize: '15px', color: '#4a5165', lineHeight: 1.55, margin: 0 }}>
                     {CLAIM_SHINGLES}. {CLAIM_WARRANTY}.
                   </p>
-                  <p style={{ fontSize: '13px', color: '#5b6275', lineHeight: 1.5, margin: 0 }}>{FINANCING_DISCLAIMER}</p>
                 </div>
-              </div>
-            )}
-
-            {/* ---- Step 3: Timing ---- */}
-            {!s.submitted && s.screen === 3 && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                {urgent && (
-                  <div style={urgentBadge}>ACTIVE LEAK — WE&rsquo;LL PRIORITIZE YOUR REQUEST</div>
-                )}
-                <h2 style={stepHeading}>When would you like the inspection?</h2>
-                <p style={stepSub}>This helps us plan our routes — nothing is locked in until you confirm.</p>
-                {TIMINGS.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="amr-option"
-                    onClick={() => selectSingle('timing', label, 4)}
-                    style={cardStyle(s.timing === label)}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <button type="button" onClick={back} style={backTextBtn}>
-                  &larr; Back
-                </button>
-              </div>
-            )}
-
-            {/* ---- Step 4: Address ---- */}
-            {!s.submitted && s.screen === 4 && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <h2 style={stepHeading}>Where should we inspect?</h2>
-                <p style={{ ...stepSub, margin: '0 0 16px' }}>
-                  Your address lets us confirm coverage and study your roofline before we ever arrive.
-                </p>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    nextAddress();
-                  }}
-                >
-                  <label htmlFor="f-address" className="sr-only">
-                    Street address
-                  </label>
-                  <input
-                    id="f-address"
-                    value={s.address}
-                    onChange={set('address')}
-                    placeholder="Street address"
-                    autoComplete="street-address"
-                    style={inputStyle}
-                  />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <label htmlFor="f-city" className="sr-only">
-                        City
-                      </label>
-                      <input
-                        id="f-city"
-                        value={s.city}
-                        onChange={set('city')}
-                        placeholder="City"
-                        autoComplete="address-level2"
-                        style={{ ...inputFlexStyle, width: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 'none' }}>
-                      <label htmlFor="f-zip" className="sr-only">
-                        ZIP code
-                      </label>
-                      <input
-                        id="f-zip"
-                        value={s.zip}
-                        onChange={set('zip')}
-                        placeholder="ZIP code"
-                        inputMode="numeric"
-                        autoComplete="postal-code"
-                        maxLength={5}
-                        style={zipStyle}
-                      />
-                    </div>
-                  </div>
-                  {!!s.error && (
-                    <div role="alert" aria-live="polite" style={errorStyle}>
-                      {s.error}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                    <button type="button" onClick={back} style={backBoxBtn}>
-                      &larr; Back
-                    </button>
-                    <button type="submit" className="amr-btn-primary" style={continueBtn}>
-                      Continue &rarr;
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* ---- Step 5: Offers (final step — submits the lead) ---- */}
-            {!s.submitted && s.screen === 5 && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <h2 style={stepHeading}>Which options would you like us to explain?</h2>
-                <p style={stepSub}>
-                  Select any you&rsquo;re curious about — this is not a financing application, just a conversation.
-                </p>
-                {OFFERS.map((label) => {
-                  const sel = s.offers.includes(label);
-                  return (
-                    <button
-                      key={label}
-                      type="button"
-                      className="amr-option-offer"
-                      aria-pressed={sel}
-                      onClick={() => toggleOffer(label)}
-                      style={cardStyle(sel)}
-                    >
-                      <span
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: '10px',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {label}
-                        <span style={{ fontSize: '16px', color: '#ffb3b7' }}>{sel ? '✓' : ''}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-                {!!s.error && (
-                  <div role="alert" aria-live="polite" style={{ ...errorStyle, marginTop: '14px' }}>
-                    {s.error}
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                  <button type="button" onClick={back} style={backBoxBtn}>
-                    &larr; Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={submit}
-                    className="amr-submit"
-                    disabled={s.submitting}
-                    style={{
-                      flex: 1,
-                      background: '#d7222b',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '15px',
-                      fontFamily: FONT_BODY,
-                      fontWeight: 700,
-                      fontSize: '17.5px',
-                      cursor: s.submitting ? 'default' : 'pointer',
-                      opacity: s.submitting ? 0.75 : 1,
-                      boxShadow: '0 12px 28px rgba(215,34,43,0.3)',
-                      transition: 'transform .15s ease, background .15s ease',
-                      minHeight: 44,
-                    }}
-                  >
-                    {s.submitting ? 'Sending…' : 'Request My Free Roof Inspection'}
-                  </button>
-                </div>
-                <p style={{ ...finePrint, color: '#5b6275' }}>
-                  {FINANCING_DISCLAIMER} Discount eligibility verification may be required.
-                </p>
-                <p style={{ ...finePrint, marginTop: '10px' }}>
-                  Submitting this request does not obligate you to purchase roofing services or apply for financing. By
-                  submitting, you agree that American Master Roofing may contact you by call or text regarding your
-                  inspection request. Consent is not a condition of purchase. Message and data rates may apply.
-                </p>
-                <details style={{ marginTop: '8px' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '13px', color: '#6a7186', fontWeight: 600 }}>
-                    Privacy Policy &amp; Terms
-                  </summary>
-                  <p style={{ fontSize: '13px', color: '#6a7186', lineHeight: 1.5, margin: '6px 0 0' }}>
-                    Information submitted through this page is used only to coordinate your inspection request and
-                    related follow-up by American Master Roofing; it is not sold to third parties. Free inspection
-                    carries no obligation to purchase. Warranty coverage depends on the selected roofing system and
-                    manufacturer terms. Discount availability and combinability may vary.
-                  </p>
-                </details>
               </div>
             )}
 
             {/* ---- Step 2: Contact ---- */}
             {!s.submitted && s.screen === 2 && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <h2 style={stepHeading}>Who are we scheduling for?</h2>
-                <p style={{ ...stepSub, margin: '0 0 16px' }}>
+              <div className="amr-step">
+                {seg}
+                {deskHeading(STEP_Q[2])}
+                <p className="amr-sub only-desktop">
                   We&rsquo;ll call or text to confirm a time that works for you. That&rsquo;s the only reason we ask.
                 </p>
                 <form
@@ -979,31 +937,31 @@ export default function Funnel() {
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="amr-row2">
+                    <div>
                       <label htmlFor="f-first" className="sr-only">
                         First name
                       </label>
                       <input
                         id="f-first"
+                        className="amr-in"
                         value={s.first}
                         onChange={set('first')}
                         placeholder="First name"
                         autoComplete="given-name"
-                        style={{ ...inputFlexStyle, width: '100%' }}
                       />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div>
                       <label htmlFor="f-last" className="sr-only">
                         Last name
                       </label>
                       <input
                         id="f-last"
+                        className="amr-in"
                         value={s.last}
                         onChange={set('last')}
                         placeholder="Last name"
                         autoComplete="family-name"
-                        style={{ ...inputFlexStyle, width: '100%' }}
                       />
                     </div>
                   </div>
@@ -1012,48 +970,32 @@ export default function Funnel() {
                   </label>
                   <input
                     id="f-phone"
+                    className="amr-in"
                     value={s.phone}
                     onChange={set('phone')}
                     placeholder="Mobile phone number"
                     inputMode="tel"
                     type="tel"
                     autoComplete="tel"
-                    style={inputStyle}
                   />
                   <label htmlFor="f-email" className="sr-only">
                     Email address
                   </label>
                   <input
                     id="f-email"
+                    className="amr-in"
                     value={s.email}
                     onChange={set('email')}
                     placeholder="Email address"
                     inputMode="email"
                     type="email"
                     autoComplete="email"
-                    style={inputStyle}
                   />
-                  {!!s.error && (
-                    <div role="alert" aria-live="polite" style={{ ...errorStyle, marginTop: '4px' }}>
-                      {s.error}
-                    </div>
-                  )}
+                  {errorBox}
 
                   {/* TCPA consent — verbatim copy from lib/claims.ts, unchecked by
                       default, never persisted; the button stays disabled until checked. */}
-                  <label
-                    htmlFor="f-consent"
-                    style={{
-                      display: 'flex',
-                      gap: 10,
-                      alignItems: 'flex-start',
-                      marginTop: 14,
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      color: '#5b6275',
-                      lineHeight: 1.5,
-                    }}
-                  >
+                  <label htmlFor="f-consent" className="amr-consent">
                     <input
                       id="f-consent"
                       type="checkbox"
@@ -1065,177 +1007,235 @@ export default function Funnel() {
                           error: '',
                         }))
                       }
-                      style={{ width: 18, height: 18, flex: 'none', marginTop: 1, accentColor: '#1b2a5b' }}
                     />
                     <span>
                       <ConsentCopy />
                     </span>
                   </label>
 
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                    <button type="button" onClick={back} style={backBoxBtn}>
-                      &larr; Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="amr-btn-primary"
-                      disabled={!s.consentAt}
-                      style={{
-                        ...continueBtn,
-                        opacity: s.consentAt ? 1 : 0.55,
-                        cursor: s.consentAt ? 'pointer' : 'default',
-                      }}
-                    >
-                      Continue &rarr;
-                    </button>
-                  </div>
+                  <button type="submit" className="amr-cta" disabled={!s.consentAt}>
+                    Continue &rarr;
+                  </button>
+                  {deskBack}
                 </form>
+              </div>
+            )}
+
+            {/* ---- Step 3: Timing ---- */}
+            {!s.submitted && s.screen === 3 && (
+              <div className="amr-step">
+                {seg}
+                {urgent && (
+                  <div className="only-desktop">
+                    <div style={urgentBadge}>ACTIVE LEAK — WE&rsquo;LL PRIORITIZE YOUR REQUEST</div>
+                  </div>
+                )}
+                {deskHeading(STEP_Q[3])}
+                <div className="amr-opts">
+                  {TIMINGS.map((label, i) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={s.timing === label ? 'amr-opt is-sel' : 'amr-opt'}
+                      onClick={() => selectSingle('timing', label, 4)}
+                    >
+                      <span>{label}</span>
+                      {i === 0 && (
+                        <em>
+                          WITHIN
+                          <br />
+                          24 HOURS
+                        </em>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="amr-note">Nothing is locked in until you confirm by phone.</p>
+                {deskBack}
+              </div>
+            )}
+
+            {/* ---- Step 4: Address ---- */}
+            {!s.submitted && s.screen === 4 && (
+              <div className="amr-step">
+                {seg}
+                {deskHeading(STEP_Q[4])}
+                <p className="amr-sub only-desktop">
+                  Your address lets us confirm coverage and study your roofline before we ever arrive.
+                </p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    nextAddress();
+                  }}
+                >
+                  <label htmlFor="f-address" className="sr-only">
+                    Street address
+                  </label>
+                  <input
+                    id="f-address"
+                    className="amr-in"
+                    value={s.address}
+                    onChange={set('address')}
+                    placeholder="Street address"
+                    autoComplete="street-address"
+                  />
+                  <div className="amr-row2 amr-row2--zip">
+                    <div>
+                      <label htmlFor="f-city" className="sr-only">
+                        City
+                      </label>
+                      <input
+                        id="f-city"
+                        className="amr-in"
+                        value={s.city}
+                        onChange={set('city')}
+                        placeholder="City"
+                        autoComplete="address-level2"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="f-zip" className="sr-only">
+                        ZIP code
+                      </label>
+                      <input
+                        id="f-zip"
+                        className="amr-in"
+                        value={s.zip}
+                        onChange={set('zip')}
+                        placeholder="ZIP"
+                        inputMode="numeric"
+                        autoComplete="postal-code"
+                        maxLength={5}
+                      />
+                    </div>
+                  </div>
+                  <p className="amr-area">
+                    <PinIcon />
+                    <span>Serving {BUSINESS.serviceAreas}</span>
+                  </p>
+                  {errorBox}
+                  <button type="submit" className="amr-cta">
+                    Continue &rarr;
+                  </button>
+                  {deskBack}
+                </form>
+              </div>
+            )}
+
+            {/* ---- Step 5: Offers (final step — submits the lead) ---- */}
+            {!s.submitted && s.screen === 5 && (
+              <div className="amr-step">
+                {seg}
+                {deskHeading(STEP_Q[5])}
+                <p className="amr-sub">Optional. Tap any and we&rsquo;ll walk you through them at your inspection.</p>
+                <div className="amr-chips">
+                  {OFFERS.map((label) => {
+                    const sel = s.offers.includes(label);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        className={sel ? 'amr-chip is-sel' : 'amr-chip'}
+                        aria-pressed={sel}
+                        onClick={() => toggleOffer(label)}
+                      >
+                        <span className="amr-ck">{sel && <CheckIcon />}</span>
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {errorBox}
+                <button type="button" onClick={submit} className="amr-cta" disabled={s.submitting}>
+                  {s.submitting ? 'Sending…' : 'Book My Free Inspection'}
+                </button>
+                {financingFine('Discount eligibility verification may be required.')}
+                {deskBack}
+                <p style={{ ...finePrint, marginTop: '10px' }}>
+                  Submitting this request does not obligate you to purchase roofing services or apply for financing. By
+                  submitting, you agree that American Master Roofing may contact you by call or text regarding your
+                  inspection request. Consent is not a condition of purchase. Message and data rates may apply.
+                </p>
+                <details style={{ marginTop: '8px' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '13px', color: '#6a7186', fontWeight: 600 }}>
+                    Privacy Policy &amp; Terms
+                  </summary>
+                  <p style={{ fontSize: '13px', color: '#6a7186', lineHeight: 1.5, margin: '6px 0 0' }}>
+                    Information submitted through this page is used only to coordinate your inspection request and
+                    related follow-up by American Master Roofing; it is not sold to third parties. Free inspection
+                    carries no obligation to purchase. Warranty coverage depends on the selected roofing system and
+                    manufacturer terms. Discount availability and combinability may vary.
+                  </p>
+                </details>
               </div>
             )}
 
             {/* ---- Confirmation ---- */}
             {s.submitted && (
-              <div style={{ animation: 'stepIn .5s cubic-bezier(.22,1,.36,1) both' }}>
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: 210,
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    marginBottom: 16,
-                    animation: 'riseIn .5s .05s ease both',
-                  }}
-                >
-                  <Image
-                    src="/assets/aerial-header.webp"
-                    alt="Aerial view of a completed American Master Roofing shingle roof"
-                    fill
-                    sizes={PHOTO_SIZES}
-                    style={{ objectFit: 'cover' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      flex: 'none',
-                      borderRadius: '50%',
-                      background: '#1b2a5b',
-                      color: '#fff',
-                      fontSize: '22px',
-                      lineHeight: '44px',
-                      textAlign: 'center',
-                      animation: 'tickIn .5s .1s ease both',
-                    }}
-                  >
-                    &#10003;
-                  </div>
-                  <h2
-                    style={{
-                      fontFamily: FONT_COND,
-                      fontSize: 'clamp(34px,3.6vw,48px)',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      lineHeight: 1,
-                      margin: 0,
-                    }}
-                  >
-                    Request received{s.first.trim() ? `, ${s.first.trim()}` : ''}
-                  </h2>
-                </div>
-                {urgent && <div style={{ ...urgentBadge, marginBottom: '10px' }}>ACTIVE LEAK — PRIORITY SCHEDULING</div>}
-                <p style={{ fontSize: '17px', color: '#3a415a', lineHeight: 1.55, margin: '0 0 20px' }}>
-                  Our Houston team is reviewing your request now and will reach out shortly to confirm a time.
-                  Here&rsquo;s how it works from here:
-                </p>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '8px',
-                    marginBottom: '20px',
-                  }}
-                >
-                  {[
-                    { n: '01', t: 'We inspect', d: '.15s' },
-                    { n: '02', t: 'We document', d: '.25s' },
-                    { n: '03', t: 'We explain', d: '.35s' },
-                    { n: '04', t: 'You decide', d: '.45s' },
-                  ].map((c) => (
+              <div className="amr-step">
+                <div className="only-desktop">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                     <div
-                      key={c.n}
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #e3e0d8',
-                        borderRadius: '10px',
-                        padding: '12px 14px',
-                        animation: `riseIn .4s ${c.d} ease both`,
+                        width: 44,
+                        height: 44,
+                        flex: 'none',
+                        borderRadius: '50%',
+                        background: '#1b2a5b',
+                        color: '#fff',
+                        fontSize: '22px',
+                        lineHeight: '44px',
+                        textAlign: 'center',
+                        animation: 'tickIn .5s .1s ease both',
                       }}
                     >
-                      <div style={{ fontFamily: FONT_MONO, fontSize: '11.5px', letterSpacing: '0.12em', color: '#d7222b', marginBottom: '3px' }}>
-                        {c.n}
-                      </div>
-                      <div style={{ fontFamily: FONT_COND, fontWeight: 700, fontSize: '20px', textTransform: 'uppercase' }}>
-                        {c.t}
-                      </div>
+                      &#10003;
                     </div>
-                  ))}
-                </div>
-                <div
-                  style={{
-                    border: '1px solid #e3e0d8',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    background: '#fff',
-                    marginBottom: '18px',
-                    maxWidth: 420,
-                    animation: 'riseIn .4s .5s ease both',
-                  }}
-                >
-                  <div style={{ position: 'relative', width: '100%', height: 240 }}>
-                    <Image
-                      src="/assets/mobile2.webp"
-                      alt="Before and after: homeowners with their completed roof replacement"
-                      fill
-                      sizes="420px"
-                      style={{ objectFit: 'cover' }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                      padding: '9px 14px',
-                      fontFamily: FONT_MONO,
-                      fontSize: '11.5px',
-                      letterSpacing: '0.1em',
-                      color: '#6a7186',
-                    }}
-                  >
-                    <span>ANOTHER HAPPY HOMEOWNER</span>
-                    <span style={{ color: '#d7222b' }}>HOUSTON, TX</span>
+                    <h2
+                      style={{
+                        fontFamily: FONT_COND,
+                        fontSize: 'clamp(34px,3.6vw,48px)',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        lineHeight: 1,
+                        margin: 0,
+                      }}
+                    >
+                      {doneTitle}
+                    </h2>
                   </div>
                 </div>
-                <a
-                  href={BIZ_PHONE_HREF}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    background: '#ffffff',
-                    border: '2px solid #e3e0d8',
-                    borderRadius: '10px',
-                    padding: '13px 18px',
-                    fontWeight: 700,
-                    fontSize: '16.5px',
-                    textDecoration: 'none',
-                    color: '#1b2a5b',
-                    minHeight: 44,
-                  }}
-                >
-                  Need it faster? Call {BIZ_PHONE}
+                {urgent && <div style={{ ...urgentBadge, marginBottom: '10px' }}>ACTIVE LEAK — PRIORITY SCHEDULING</div>}
+                <p className="amr-done-lede">
+                  Our Houston team will call or text shortly to confirm a time. Here&rsquo;s what happens next.
+                </p>
+                <ol className="amr-next">
+                  <li>
+                    <b>01</b>
+                    <div>
+                      We confirm a time
+                      <small>By call or text from {BIZ_PHONE}.</small>
+                    </div>
+                  </li>
+                  <li>
+                    <b>02</b>
+                    <div>
+                      We inspect and photograph
+                      <small>Every finding is documented.</small>
+                    </div>
+                  </li>
+                  <li>
+                    <b>03</b>
+                    <div>
+                      You decide
+                      <small>A straight answer, with no obligation.</small>
+                    </div>
+                  </li>
+                </ol>
+                <a href={BIZ_PHONE_HREF} className="amr-callout">
+                  <PhoneIcon />
+                  Need it sooner? Call {BIZ_PHONE}
                 </a>
               </div>
             )}
@@ -1280,11 +1280,6 @@ const stepHeading: CSSProperties = {
   textTransform: 'uppercase',
   lineHeight: 1.02,
   margin: '0 0 6px',
-};
-const stepSub: CSSProperties = {
-  fontSize: '16.5px',
-  color: '#4a5165',
-  margin: '0 0 18px',
 };
 const errorStyle: CSSProperties = {
   color: '#b81b23',
