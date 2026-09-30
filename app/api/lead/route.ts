@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { mapLeadSource } from '@/lib/touchAttribution';
 import { createHash, randomUUID } from 'node:crypto';
 
 /* ---------------------------------------------------------------------------
@@ -241,6 +242,19 @@ export async function POST(req: NextRequest) {
   const referrer = str(body.referrer);
   const capturedAt = str(body.captured_at);
 
+  // First/last-touch attribution (lib/touchAttribution.ts). The unprefixed
+  // utm_* above are the FIRST touch; last_* is the most recent campaign click,
+  // falling back to the first touch when absent (e.g. a cached older bundle).
+  const leadSource = str(body.lead_source) || mapLeadSource(utmSource);
+  const clickId = str(body.click_id);
+  const lastLeadSource = str(body.last_lead_source) || leadSource;
+  const lastUtmSource = str(body.last_utm_source) || utmSource;
+  const lastUtmMedium = str(body.last_utm_medium) || utmMedium;
+  const lastUtmCampaign = str(body.last_utm_campaign) || utmCampaign;
+  const lastUtmContent = str(body.last_utm_content) || utmContent;
+  const lastUtmTerm = str(body.last_utm_term) || utmTerm;
+  const lastClickId = str(body.last_click_id) || clickId;
+
   // TCPA consent record (see lib/claims.ts for the paired text + version).
   const consentGiven = body.consent_given === true;
   const consentTimestamp = str(body.consent_timestamp);
@@ -295,6 +309,15 @@ export async function POST(req: NextRequest) {
   if (landingPage) payload.landing_page = landingPage;
   if (referrer) payload.referrer = referrer;
   if (capturedAt) payload.captured_at = capturedAt;
+  payload.lead_source = leadSource; // always set: organic-direct when no known utm_source
+  if (clickId) payload.click_id = clickId;
+  payload.last_lead_source = lastLeadSource;
+  if (lastUtmSource) payload.last_utm_source = lastUtmSource;
+  if (lastUtmMedium) payload.last_utm_medium = lastUtmMedium;
+  if (lastUtmCampaign) payload.last_utm_campaign = lastUtmCampaign;
+  if (lastUtmContent) payload.last_utm_content = lastUtmContent;
+  if (lastUtmTerm) payload.last_utm_term = lastUtmTerm;
+  if (lastClickId) payload.last_click_id = lastClickId;
   payload.consent_given = consentGiven; // always sent, true/false
   if (consentTimestamp) payload.consent_timestamp = consentTimestamp;
   if (consentTextVersion) payload.consent_text_version = consentTextVersion;

@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
+import Script from 'next/script';
 import { getAttribution, wasNewPaidClick } from '@/lib/attribution';
+import { captureTouchAttribution, EMPTY_TOUCH_ATTRIBUTION } from '@/lib/touchAttribution';
+import type { TouchAttribution } from '@/lib/touchAttribution';
 import {
   BUSINESS,
   CLAIM_FINANCING,
@@ -60,6 +63,13 @@ const FONT_MONO = 'var(--font-plex-mono), monospace';
 const BIZ_PHONE = BUSINESS.phoneDisplay;
 const BIZ_PHONE_HREF = BUSINESS.phoneHref;
 const KEN_BURNS = true;
+
+// Self-booking (GHL calendar widget) shown on the confirmation screen.
+const BOOKING_URL = 'https://api.leadconnectorhq.com/widget/booking/hVG6Srpl2MIyc8x4I4H3';
+const BOOKING_TIERS: { when: string; off: string; lead?: boolean }[] = [
+  { when: 'Same-day or next-day inspection', off: '7% off', lead: true },
+  { when: 'Any later date', off: '5% off' },
+];
 
 const DRAFT_KEY = 'amr-funnel-draft';
 
@@ -293,6 +303,10 @@ export default function Funnel() {
   // Brief "picking up where you left off" indicator for organic resumes.
   const [resumeNotice, setResumeNotice] = useState(false);
 
+  // First/last-touch attribution, mirrored into hidden form fields. Filled on
+  // mount (client-only) so server and first client render match.
+  const [touch, setTouch] = useState<TouchAttribution>(EMPTY_TOUCH_ATTRIBUTION);
+
   // Guards the one-time "first-touch" lead capture at Step 2 so we don't
   // re-fire it if the user steps back and forward again.
   const capturedRef = useRef(false);
@@ -344,6 +358,7 @@ export default function Funnel() {
   // and fire ViewContent for the landing view (step 1).
   useEffect(() => {
     getAttribution();
+    setTouch(captureTouchAttribution());
     trackViewContent('Free Roof Inspection Funnel');
   }, []);
 
@@ -404,7 +419,11 @@ export default function Funnel() {
     consent_timestamp: s.consentAt,
     consent_text_version: CONSENT_TEXT_VERSION,
     consent_page_url: typeof window !== 'undefined' ? window.location.href : '',
-    ...getAttribution(), // utm_*, fbclid, fbp, fbc
+    ...getAttribution(), // fbclid, fbp, fbc, gclid/gbraid/wbraid, captured_at
+    // First/last touch — deliberately spread AFTER getAttribution() so utm_*,
+    // landing_page and referrer carry strict first-touch values (90 days),
+    // plus lead_source, click_id and the last_* fields.
+    ...captureTouchAttribution(),
     ...(eventId ? { fb_event_id: eventId } : {}),
   });
 
@@ -503,6 +522,18 @@ export default function Funnel() {
   const showProgress = !s.submitted && s.screen > 0;
   const stepPct = Math.round((s.screen / 5) * 100) + '%';
   const doneTitle = `Request received${s.first.trim() ? `, ${s.first.trim()}` : ''}`;
+
+  // Prefill the booking widget from what they just told us, so self-booking
+  // doesn't ask for the same details twice. Unknown params are ignored by GHL.
+  const bookingSrc = (() => {
+    const q = new URLSearchParams();
+    if (s.first.trim()) q.set('first_name', s.first.trim());
+    if (s.last.trim()) q.set('last_name', s.last.trim());
+    if (s.email.trim()) q.set('email', s.email.trim());
+    if (s.phone.trim()) q.set('phone', s.phone.trim());
+    const qs = q.toString();
+    return qs ? `${BOOKING_URL}?${qs}` : BOOKING_URL;
+  })();
 
   // Segmented progress (phones — desktop keeps its progress bar above).
   const seg = (
@@ -948,6 +979,12 @@ export default function Funnel() {
                     />
                   </div>
 
+                  {/* First/last-touch attribution (lib/touchAttribution.ts), also
+                      sent with the lead payload. */}
+                  {(Object.keys(touch) as (keyof TouchAttribution)[]).map((k) => (
+                    <input key={k} type="hidden" name={k} value={touch[k]} readOnly />
+                  ))}
+
                   <div className="amr-row2">
                     <div>
                       <label htmlFor="f-first" className="sr-only">
@@ -1244,6 +1281,142 @@ export default function Funnel() {
                     </div>
                   </li>
                 </ol>
+
+                {/* ---- Self-booking incentive + GHL calendar ---- */}
+                <section
+                  style={{
+                    border: '1px solid #e3e0d8',
+                    borderRadius: '12px',
+                    background: '#fff',
+                    padding: '18px',
+                    marginTop: '18px',
+                    animation: 'riseIn .4s .3s ease both',
+                  }}
+                >
+                  <div
+                    className="amr-book-badge"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '9px',
+                      background: '#d7222b',
+                      color: '#ffffff',
+                      borderRadius: 999,
+                      padding: '9px 16px',
+                      marginBottom: '12px',
+                      fontFamily: FONT_MONO,
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      lineHeight: 1,
+                    }}
+                  >
+                    Book yourself &mdash; click below
+                    <span aria-hidden="true" style={{ fontSize: '14px', lineHeight: 1 }}>
+                      &darr;
+                    </span>
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: FONT_COND,
+                      fontSize: 'clamp(24px,2.5vw,32px)',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      lineHeight: 1.05,
+                      margin: '0 0 14px',
+                      color: '#1b2a5b',
+                    }}
+                  >
+                    Save more on a full roof replacement
+                  </h3>
+
+                  <ul style={{ listStyle: 'none', margin: '0 0 16px', padding: 0, display: 'grid', gap: '6px' }}>
+                    {BOOKING_TIERS.map((t) => (
+                      <li
+                        key={t.when}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          padding: '11px 14px',
+                          borderRadius: '8px',
+                          background: t.lead ? '#fdf4f4' : '#faf9f6',
+                          border: `1px solid ${t.lead ? '#f0cdd0' : '#eceae3'}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: FONT_COND,
+                            fontSize: '19px',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            lineHeight: 1.1,
+                            color: '#1b2a5b',
+                          }}
+                        >
+                          {t.when}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: FONT_MONO,
+                            fontSize: t.lead ? '16px' : '14px',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            color: t.lead ? '#d7222b' : '#6a7186',
+                          }}
+                        >
+                          {t.off}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <p style={{ fontSize: '15.5px', color: '#3a415a', lineHeight: 1.55, margin: '0 0 10px' }}>
+                    <strong style={{ color: '#1b2a5b' }}>Why reward speed?</strong> Because roofs don&rsquo;t wait. Every
+                    day a small issue goes unaddressed is another day for water to find its way in. Acting early protects
+                    your home, and we&rsquo;d rather reward that decision than sell you a bigger job later.
+                  </p>
+                  <p style={{ fontSize: '15.5px', color: '#3a415a', lineHeight: 1.55, margin: '0 0 14px' }}>
+                    No pressure and no obligation. You get an honest assessment from a team that documents everything and
+                    explains it in plain terms. If your roof is in good shape, we&rsquo;ll tell you.
+                  </p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#1b2a5b', lineHeight: 1.5, margin: '0 0 14px' }}>
+                    Pick your time below. Same-day slots are limited and go first.
+                  </p>
+
+                  {/* GHL booking widget. form_embed.js auto-sizes the iframe to its
+                      content; the iframe scrolls on its own if the script is blocked. */}
+                  <div
+                    style={{
+                      border: '1px solid #eceae3',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      background: '#faf9f6',
+                    }}
+                  >
+                    <iframe
+                      src={bookingSrc}
+                      title="Schedule your free roof inspection"
+                      loading="lazy"
+                      style={{ display: 'block', width: '100%', height: 720, border: 'none' }}
+                    />
+                  </div>
+                  <Script src="https://link.msgsndr.com/js/form_embed.js" strategy="lazyOnload" />
+
+                  <p style={{ fontSize: '14px', color: '#6a7186', lineHeight: 1.5, margin: '10px 0 0' }}>
+                    Calendar not loading?{' '}
+                    <a href={bookingSrc} target="_blank" rel="noopener noreferrer" style={{ color: '#d7222b', fontWeight: 700 }}>
+                      Open the scheduler in a new tab &rarr;
+                    </a>
+                  </p>
+                  <p style={{ ...finePrint, marginTop: '12px' }}>
+                    Discount applies to full roof replacements only, is based on the inspection date selected at booking,
+                    and cannot be combined with other offers. Terms apply.
+                  </p>
+                </section>
+
                 <a href={BIZ_PHONE_HREF} className="amr-callout">
                   <PhoneIcon />
                   Need it sooner? Call {BIZ_PHONE}

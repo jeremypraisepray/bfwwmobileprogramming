@@ -68,7 +68,11 @@ The route POSTs this JSON shape to the webhook:
   "firstName": "...", "lastName": "...", "phone": "+1XXXXXXXXXX", "email": "...",
   "address1": "...", "city": "...", "postalCode": "...", "state": "TX",
   "concern": "...", "timing": "...", "offerInterests": "a, b, c",
-  "urgentLeak": true, "stage": "complete", "source": "Free Inspection Funnel"
+  "urgentLeak": true, "stage": "complete", "source": "Free Inspection Funnel",
+  "lead_source": "meta-landing-page", "utm_source": "meta", "utm_campaign": "...",
+  "click_id": "...", "landing_page": "https://.../", "referrer": "...",
+  "last_lead_source": "google-landing-page", "last_utm_source": "google",
+  "last_utm_campaign": "...", "last_click_id": "...", "gclid": "..."
 }
 ```
 
@@ -94,6 +98,44 @@ Optional GHL tagging using `stage`:
 - Add a `completed-funnel` tag only when `stage = "complete"`. Any contact with
   `inspection-request` but **without** `completed-funnel` is a drop-off you can
   follow up on.
+
+### Attribution fields (first + last touch)
+
+Every lead also carries campaign attribution (`lib/touchAttribution.ts`, kept
+in the browser's localStorage for 90 days):
+
+| Fields | Meaning |
+| --- | --- |
+| `lead_source`, `utm_*`, `click_id`, `landing_page`, `referrer` | **First touch** — the campaign that introduced the visitor. Never overwritten inside the 90 days. |
+| `last_lead_source`, `last_utm_*`, `last_click_id` | **Last touch** — the most recent campaign click. Advances whenever a visit arrives with a `utm_*` param or a click id; a direct return doesn't count. |
+
+Example: first lands from Meta, later returns from a Google ad and books →
+`utm_source: meta`, `last_utm_source: google`. On a single visit both match.
+
+`lead_source` / `last_lead_source` map `utm_source` to: `meta`/`facebook` →
+`meta-landing-page`, `tiktok` → `tiktok-landing-page`, `google` →
+`google-landing-page`, anything else or none → `organic-direct`. `click_id`
+is the first of `fbclid`, `ttclid`, `gclid`, `msclkid` on the landing URL;
+`landing_page` is the full URL without the query string.
+
+`gclid` / `gbraid` / `wbraid` and `fbclid` / `fbp` / `fbc` are unchanged (from
+`lib/attribution.ts`): the Google ids follow the latest Google Ads click so
+conversions match in Google Ads.
+
+### Google Ads conversion timing
+
+The Google Ads conversion fires when the **contact** capture returns OK, so a
+lead counts even if they drop off before the last step. It fires at most once
+per browser session; if the contact capture failed, it fires on the successful
+final submit instead.
+
+### Confirmation screen: self-booking
+
+After submission the confirmation screen offers 7% off a full roof replacement
+for a same-day or next-day inspection (5% for any later date) above an embedded
+GHL calendar. The calendar URL and tiers are `BOOKING_URL` / `BOOKING_TIERS` at
+the top of `components/Funnel.tsx`. The lead's name, email and phone prefill the
+calendar, and a "Calendar not loading?" link opens it in a new tab.
 
 **Option B (API v2 direct upsert)** is documented in the design handoff. If you
 prefer it, swap the webhook `fetch` in `app/api/lead/route.ts` for a call to
