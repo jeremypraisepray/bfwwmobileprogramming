@@ -428,9 +428,17 @@ export default function Funnel() {
     // Sent once per session; the final submit updates the same contact in GHL.
     if (!capturedRef.current) {
       capturedRef.current = true;
-      postLead('contact').catch(() => {
-        /* best-effort; the final submit will still create the lead */
-      });
+      const conversionId = newEventId(); // Google Ads transaction_id only — not sent to /api/lead
+      postLead('contact')
+        .then((res) => {
+          // Google Ads conversion — fires once the contact capture is confirmed
+          // saved, so the lead counts even if they drop off before the last
+          // step. Self-guarded (in-memory + sessionStorage): once per session.
+          if (res.ok) fireGoogleAdsConversion(conversionId);
+        })
+        .catch(() => {
+          /* best-effort; the final submit will still create the lead */
+        });
     }
     trackFunnelStep(3);
     save({ screen: 3, error: '' });
@@ -467,9 +475,9 @@ export default function Funnel() {
       const res = await postLead('complete', eventId);
       if (res.ok) {
         setS((prev) => ({ ...prev, submitted: true, submitting: false, error: '' }));
-        // Google Ads conversion — ONLY on a confirmed successful submission
-        // (per campaign requirements), never on load/steps/failures. Keyed to
-        // the submission id and self-guarded against double-firing.
+        // Google Ads conversion normally fired at the contact step. This is a
+        // fallback for when that capture failed: the once-per-session guard
+        // makes it a no-op whenever the contact-step conversion already fired.
         fireGoogleAdsConversion(eventId);
         try {
           localStorage.removeItem(DRAFT_KEY);

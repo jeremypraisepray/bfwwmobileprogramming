@@ -30,9 +30,10 @@ function markFired() {
   }
 }
 
-// Fires the Google Ads conversion exactly once, keyed to the submission id
-// (transaction_id also lets Google dedupe on their side). Called ONLY after
-// the lead endpoint confirms success — never on load, steps, or failures.
+// Fires the Google Ads conversion exactly once per session, keyed to a
+// transaction id (which also lets Google dedupe on their side). Called ONLY
+// after /api/lead confirms the lead was saved — on the contact-step capture,
+// with the final submit as a fallback — never on load or failures.
 export function fireGoogleAdsConversion(transactionId: string) {
   try {
     if (!ADS_ID || !CONVERSION_LABEL) return;
