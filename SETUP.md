@@ -144,6 +144,13 @@ offers two ways to save on a full roof replacement, only if they act now:
 The offer copy lives in the confirmation block of `components/Funnel.tsx`; the
 `.amr-offer*` styles are in `app/globals.css`.
 
+The confirmation screen also shows the step-1 credentials strip (in the phone
+header, and under the photos on desktop) and a collage of real homeowner and
+crew photos: in the desktop photo panel, and at the end of the page on phones.
+The photos live in `public/assets/homeowners/`; swap or reorder them in
+`HOMEOWNER_PHOTOS` in `components/Funnel.tsx` (each entry's `area` is its
+place in the mosaic, `pos` keeps faces in the crop).
+
 **Option B (API v2 direct upsert)** is documented in the design handoff. If you
 prefer it, swap the webhook `fetch` in `app/api/lead/route.ts` for a call to
 `POST https://services.leadconnectorhq.com/contacts/upsert` with

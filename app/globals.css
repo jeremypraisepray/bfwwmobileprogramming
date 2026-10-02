@@ -591,6 +591,135 @@ input::placeholder {
   text-wrap: balance;
 }
 
+/* Credentials strip (step-1 phone header; confirmation header and desktop panel). */
+.m-glass {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 7px 12px;
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 4px 10px;
+  border-radius: 12px;
+  background: rgba(12, 20, 46, 0.6);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.m-glass li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.m-glass img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
+  flex: none;
+}
+.m-sq {
+  width: 9px;
+  height: 9px;
+  background: #d7222b;
+  margin: 0 3px;
+  flex: none;
+}
+.m-glass--panel {
+  margin: 12px 0 0;
+  padding: 10px 16px;
+  gap: 6px 16px;
+  color: #fff;
+  font-size: 13px;
+}
+.m-glass--panel img {
+  width: 17px;
+  height: 17px;
+}
+
+/* Homeowner collage (confirmation). Desktop: fills the photo panel between
+   the top strip and the caption, credentials strip underneath. Phones: an
+   inline 3-column mosaic at the end of the page. */
+.amr-collage-layer {
+  position: absolute;
+  inset: 44px 20px 58px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.9s ease, visibility 0s 0.9s;
+}
+.amr-collage-layer.on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.9s ease;
+}
+.amr-collage {
+  display: grid;
+  gap: 8px;
+}
+.amr-collage--panel {
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-areas:
+    'a a a b'
+    'c d d e'
+    'f f g h';
+}
+.amr-collage--inline {
+  gap: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 196px 156px 164px 164px;
+  grid-template-areas:
+    'a a a'
+    'b c e'
+    'f f g'
+    'd d h';
+}
+.amr-photo-tile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #1b2a5b;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+.amr-collage--inline .amr-photo-tile {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(12, 20, 46, 0.12);
+}
+.amr-photo-tile img {
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+.amr-photo-tile:hover img {
+  transform: scale(1.04);
+}
+/* Inner hairline so photos read as framed prints on the dark panel. */
+.amr-photo-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+.amr-collage-layer.on .amr-photo-tile {
+  animation: riseIn 0.55s calc(0.15s + var(--i) * 0.06s) ease both;
+}
+.amr-collage-section {
+  margin-top: 22px;
+}
+
 /* ---- Phones: photo header + one-screen sheet ---- */
 @media (max-width: 859px) {
   .amr-root {
@@ -858,45 +987,6 @@ input::placeholder {
     padding: 6px 10px;
     background: rgba(255, 255, 255, 0.96);
     color: #1b2a5b;
-  }
-  .m-glass {
-    list-style: none;
-    margin: 14px 0 0;
-    padding: 7px 12px;
-    display: grid;
-    grid-template-columns: 1.12fr 1fr;
-    gap: 4px 10px;
-    border-radius: 12px;
-    background: rgba(12, 20, 46, 0.6);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    font-size: 11.5px;
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .m-glass li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  .m-glass img {
-    width: 15px;
-    height: 15px;
-    object-fit: contain;
-    background: #fff;
-    border-radius: 3px;
-    padding: 1px;
-    flex: none;
-  }
-  .m-sq {
-    width: 9px;
-    height: 9px;
-    background: #d7222b;
-    margin: 0 3px;
-    flex: none;
   }
 
   /* Sheet content, tightened to fit one screen */

@@ -170,10 +170,11 @@ const DESKTOP_META: Meta[] = [
   { label: 'COMPLETED SYSTEM · AERIAL', tag: 'DOCUMENTED' },
   { label: 'JOB SITE · $0 DOWN FINANCING', tag: 'HOUSTON, TX' },
   { label: 'COMPLETED SYSTEM · DETAIL', tag: 'HOUSTON, TX' },
-  { label: 'BEFORE / AFTER · FULL REPLACEMENT', tag: 'THANK YOU' },
+  { label: 'HAPPY HOUSTON HOMEOWNERS', tag: 'THANK YOU' },
 ];
 
 // Desktop photo panel layers (hidden on phones, where the step header takes over).
+// The confirmation screen (6) shows the homeowner collage instead.
 type Layer = { slot: number; src: string; alt: string; fit: 'cover' | 'contain'; pos?: string };
 const LAYERS: Layer[] = [
   { slot: 1, src: '/assets/roof-ridge.webp', alt: 'Ridge vent and shingles photographed during a roof inspection', fit: 'cover' },
@@ -181,7 +182,6 @@ const LAYERS: Layer[] = [
   { slot: 3, src: '/assets/aerial.webp', alt: 'Aerial view of a completed American Master Roofing shingle roof', fit: 'contain' },
   { slot: 4, src: '/assets/yard-sign.webp', alt: 'Job site with $0-down financing yard sign in front of a re-roof in progress', fit: 'cover' },
   { slot: 5, src: '/assets/finished-roof.webp', alt: 'Completed premium roof, dormer and copper detail', fit: 'cover', pos: '82% center' },
-  { slot: 6, src: '/assets/before-after.webp', alt: 'Before and after of a completed full roof replacement', fit: 'contain' },
 ];
 
 const PHOTO_SIZES = '45vw';
@@ -196,6 +196,20 @@ const MOBILE_HEROES: { slot: number; src: string; alt: string; pos: string }[] =
   { slot: 4, src: '/assets/hdr-address.webp', alt: 'Aerial view of a completed shingle roof', pos: '50% 50%' },
   { slot: 5, src: '/assets/hdr-offers.webp', alt: 'Roofer securing new flashing on a shingle roof', pos: '50% 45%' },
   { slot: 6, src: '/assets/hdr-done.webp', alt: 'Homeowners in front of their new roof', pos: '50% 30%' },
+];
+
+// Confirmation collage: real AMR homeowners and crews. `area` places each photo
+// in the mosaic (see .amr-collage in globals.css); the largest tiles get the
+// photos that hold up best at size. `pos` keeps faces and signs in the crop.
+const HOMEOWNER_PHOTOS: { area: string; src: string; alt: string; pos: string; panel: string; inline: string }[] = [
+  { area: 'a', src: '/assets/homeowners/couple-sign.webp', alt: 'Homeowners holding an American Master Roofing “Another happy homeowner” sign', pos: '50% 42%', panel: '34vw', inline: '100vw' },
+  { area: 'b', src: '/assets/homeowners/homeowner-sign.webp', alt: 'A homeowner with an American Master Roofing sign in her driveway', pos: '50% 40%', panel: '12vw', inline: '34vw' },
+  { area: 'c', src: '/assets/homeowners/kitchen-visit.jpg', alt: 'An American Master Roofing rep with two homeowners in their kitchen', pos: '50% 35%', panel: '12vw', inline: '34vw' },
+  { area: 'd', src: '/assets/homeowners/team-sign.webp', alt: 'The American Master Roofing team behind a free roof inspection sign', pos: '50% 48%', panel: '23vw', inline: '67vw' },
+  { area: 'e', src: '/assets/homeowners/homeowner-sign-brick.jpg', alt: 'A homeowner holding an American Master Roofing sign in front of his brick home', pos: '50% 38%', panel: '12vw', inline: '34vw' },
+  { area: 'f', src: '/assets/homeowners/family-selfie.jpg', alt: 'American Master Roofing reps taking a selfie with a homeowner family', pos: '50% 40%', panel: '23vw', inline: '67vw' },
+  { area: 'g', src: '/assets/homeowners/rep-selfie.webp', alt: 'An American Master Roofing rep with a homeowner holding his roofing folder', pos: '50% 35%', panel: '12vw', inline: '34vw' },
+  { area: 'h', src: '/assets/homeowners/crew-on-roof.webp', alt: 'A rep and a homeowner watching the crew work on the roof', pos: '50% 28%', panel: '12vw', inline: '34vw' },
 ];
 
 const HERO_KICKERS: Record<number, string> = {
@@ -274,6 +288,46 @@ const PhoneIcon = () => (
     <path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.6 5.5a2 2 0 0 1 2-2z" />
   </svg>
 );
+// The step-1 credentials strip, also shown on the confirmation screen.
+function CredGlass({ className }: { className?: string }) {
+  return (
+    <ul className={className ? `m-glass ${className}` : 'm-glass'} aria-label="Credentials">
+      <li>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={LOGO_OWENS_CORNING} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+        {CRED_OWENS_CORNING_SHORT}
+      </li>
+      <li>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={LOGO_BBB} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+        {CRED_BBB_SHORT}
+      </li>
+      <li>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={LOGO_GOOGLE} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
+        {CRED_GOOGLE_SHORT}
+      </li>
+      <li>
+        <span className="m-sq" />
+        {CRED_ROOFS_SHORT}
+      </li>
+    </ul>
+  );
+}
+
+// Mosaic of homeowner photos: 4x3 in the desktop panel, 3 columns inline on phones.
+function HomeownerCollage({ variant }: { variant: 'panel' | 'inline' }) {
+  return (
+    <div className={`amr-collage amr-collage--${variant}`}>
+      {HOMEOWNER_PHOTOS.map((p, i) => (
+        <figure key={p.area} className="amr-photo-tile" style={{ gridArea: p.area, '--i': i } as CSSProperties}>
+          <Image src={p.src} alt={p.alt} fill sizes={variant === 'panel' ? p.panel : p.inline} style={{ objectPosition: p.pos }} />
+        </figure>
+      ))}
+    </div>
+  );
+}
+
 const CalendarIcon = () => (
   <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinejoin="round" aria-hidden>
     <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
@@ -653,6 +707,13 @@ export default function Funnel() {
           }}
         />
 
+        {(s.screen >= 5 || s.submitted) && (
+          <div className={activeIdx === 6 ? 'amr-collage-layer on' : 'amr-collage-layer'} aria-hidden={activeIdx !== 6}>
+            <HomeownerCollage variant="panel" />
+            <CredGlass className="m-glass--panel" />
+          </div>
+        )}
+
         {captionBar(DESKTOP_META[activeIdx])}
 
         {/* Top strip */}
@@ -731,27 +792,7 @@ export default function Funnel() {
                 <b>{OFFER_DOWN}</b>
                 <span>{OFFER_MONTHLY}</span>
               </div>
-              <ul className="m-glass" aria-label="Credentials">
-                <li>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={LOGO_OWENS_CORNING} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
-                  {CRED_OWENS_CORNING_SHORT}
-                </li>
-                <li>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={LOGO_BBB} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
-                  {CRED_BBB_SHORT}
-                </li>
-                <li>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={LOGO_GOOGLE} alt="" width={15} height={15} data-cred-logo onError={hideOnError} />
-                  {CRED_GOOGLE_SHORT}
-                </li>
-                <li>
-                  <span className="m-sq" />
-                  {CRED_ROOFS_SHORT}
-                </li>
-              </ul>
+              <CredGlass />
             </>
           ) : activeIdx === 6 ? (
             <>
@@ -765,6 +806,7 @@ export default function Funnel() {
                 </span>
                 <h2 className="m-q">{doneTitle}</h2>
               </div>
+              <CredGlass />
             </>
           ) : (
             <>
@@ -1316,6 +1358,14 @@ export default function Funnel() {
                     On your full roof replacement. Free inspection. No pressure. No obligation.
                   </p>
                 </div>
+
+                <section className="m-only amr-collage-section" aria-label="Happy Houston homeowners">
+                  <div style={monoKicker}>
+                    <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
+                    HAPPY HOUSTON HOMEOWNERS
+                  </div>
+                  <HomeownerCollage variant="inline" />
+                </section>
               </div>
             )}
           </div>
