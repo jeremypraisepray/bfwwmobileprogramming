@@ -129,13 +129,20 @@ lead counts even if they drop off before the last step. It fires at most once
 per browser session; if the contact capture failed, it fires on the successful
 final submit instead.
 
-### Confirmation screen: self-booking
+### Confirmation screen: call-or-book offer
 
-After submission the confirmation screen offers 7% off a full roof replacement
-for a same-day or next-day inspection (5% for any later date) above an embedded
-GHL calendar. The calendar URL and tiers are `BOOKING_URL` / `BOOKING_TIERS` at
-the top of `components/Funnel.tsx`. The lead's name, email and phone prefill the
-calendar, and a "Calendar not loading?" link opens it in a new tab.
+After submission the confirmation screen ("Act now. Claim your savings.")
+offers two ways to save on a full roof replacement, only if they act now:
+
+- **Option 1 — Call now: $1,000 cash back** for calling before the team
+  contacts them. The button and number dial `BUSINESS.phoneHref`.
+- **Option 2 — Book now: extra 7% off** for booking a free inspection online
+  for today or tomorrow. The button opens the GHL booking page (`BOOKING_URL`
+  at the top of `components/Funnel.tsx`), prefilled with the lead's name,
+  email and phone.
+
+The offer copy lives in the confirmation block of `components/Funnel.tsx`; the
+`.amr-offer*` styles are in `app/globals.css`.
 
 **Option B (API v2 direct upsert)** is documented in the design handoff. If you
 prefer it, swap the webhook `fetch` in `app/api/lead/route.ts` for a call to

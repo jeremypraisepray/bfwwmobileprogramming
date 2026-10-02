@@ -67,16 +67,6 @@ input::placeholder {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
 }
-/* Self-booking badge: a soft expanding ring so the CTA reads as live.
-   Neutralized by the prefers-reduced-motion block below. */
-@keyframes bookPulse {
-  0% { box-shadow: 0 0 0 0 rgba(215, 34, 43, 0.4); }
-  70% { box-shadow: 0 0 0 12px rgba(215, 34, 43, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(215, 34, 43, 0); }
-}
-.amr-book-badge {
-  animation: bookPulse 2.4s 1.1s ease-out infinite;
-}
 
 /* ---- Layout (desktop-first; server renders desktop) ---- */
 .amr-root {
@@ -381,59 +371,224 @@ input::placeholder {
   margin-top: 4px;
 }
 
-/* Confirmation */
-.amr-done-lede {
-  font-size: 17px;
-  color: #3a415a;
-  line-height: 1.5;
-  margin: 0 0 16px;
+/* Confirmation: call-or-book offer. Display type is Barlow Condensed at
+   800/900 so the offers read bold; sizes clamp so the longest lines stay on
+   one row in a 390px phone and in the 560px desktop column. */
+.amr-offer {
+  text-align: center;
+  animation: riseIn 0.45s 0.1s ease both;
 }
-.amr-next {
-  list-style: none;
+.amr-offer-act,
+.amr-offer-claim,
+.amr-offer-banner,
+.amr-offer-amount,
+.amr-offer-btn,
+.amr-offer-or,
+.amr-offer-now-title,
+.amr-offer-why-title,
+.amr-offer-why-band {
+  font-family: var(--font-barlow-condensed), sans-serif;
+  text-transform: uppercase;
+}
+.amr-offer-act {
   margin: 0;
-  padding: 14px 0 0;
-  border-top: 1px solid #eceae3;
-  display: grid;
-  gap: 12px;
+  font-size: clamp(60px, 17vw, 96px);
+  font-weight: 900;
+  line-height: 0.88;
+  color: #1b2a5b;
 }
-.amr-next li {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 4px;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #18213d;
+.amr-offer-claim {
+  margin: 2px 0 0;
+  font-size: clamp(36px, 9.6vw, 60px);
+  font-weight: 900;
+  line-height: 0.95;
+  color: #d7222b;
 }
-.amr-next b {
+.amr-offer-banner {
+  margin: 12px 0 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #d7222b;
+  color: #fff;
+  font-size: clamp(17px, 4.8vw, 22px);
+  font-weight: 800;
+  line-height: 1.1;
+  text-wrap: balance;
+  box-shadow: 0 8px 20px rgba(215, 34, 43, 0.22);
+}
+.amr-offer-card {
+  position: relative;
+  padding: 14px 16px 16px;
+  border: 1.5px solid #e3e0d8;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(12, 20, 46, 0.06);
+}
+.amr-offer-chip {
+  display: table;
+  margin: 0 auto 0 0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #fdeceb;
+  color: #d7222b;
   font-family: var(--font-plex-mono), monospace;
   font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  color: #d7222b;
-  padding-top: 3px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
-.amr-next small {
+.amr-offer-amount {
+  margin: 6px 0 0;
+  font-size: clamp(72px, 21vw, 104px);
+  font-weight: 900;
+  line-height: 0.86;
+  color: #1b2a5b;
+}
+.amr-offer-amount--wide {
+  font-size: clamp(50px, 13.4vw, 78px);
+  line-height: 0.95;
+}
+.amr-offer-amount-sub {
   display: block;
-  font-size: 14px;
-  font-weight: 400;
-  color: #5b6275;
-  margin-top: 2px;
+  margin-top: 4px;
+  font-size: 0.6em;
+  color: #d7222b;
 }
-.amr-callout {
+.amr-offer-how {
+  margin: 10px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #18213d;
+  text-wrap: balance;
+}
+.amr-offer-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 50px;
-  margin-top: 16px;
-  border: 1.5px solid #e3e0d8;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 16px;
   border-radius: 12px;
-  background: #fff;
-  font-weight: 700;
-  font-size: 16px;
+  color: #fff;
+  font-size: clamp(18px, 5.2vw, 26px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
   text-decoration: none;
+  text-wrap: balance;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.amr-offer-btn:hover {
+  filter: brightness(1.07);
+}
+.amr-offer-btn:active {
+  transform: translateY(1px);
+}
+.amr-offer-btn:focus-visible,
+.amr-offer-phone:focus-visible {
+  outline: 3px solid #1b2a5b;
+  outline-offset: 3px;
+}
+.amr-offer-btn svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+.amr-offer-btn--red {
+  background: #d7222b;
+  box-shadow: 0 12px 28px rgba(215, 34, 43, 0.3);
+}
+.amr-offer-btn--navy {
+  background: #1b2a5b;
+  box-shadow: 0 12px 28px rgba(27, 42, 91, 0.28);
+}
+.amr-offer-phone {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 700;
   color: #1b2a5b;
+  text-decoration: none;
+}
+.amr-offer-or {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #5b6275;
+}
+.amr-offer-or::before,
+.amr-offer-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #d9d5cb;
+}
+.amr-offer-now {
+  margin-top: 14px;
+  padding: 12px 14px 14px;
+  border: 2px solid #d7222b;
+  border-radius: 12px;
+  background: #fdf4f4;
+}
+.amr-offer-now-title {
+  margin: 0 0 4px;
+  font-size: clamp(36px, 10vw, 50px);
+  font-weight: 900;
+  line-height: 0.95;
+  color: #d7222b;
+}
+.amr-offer-now-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #18213d;
+  text-wrap: balance;
+}
+.amr-offer-why {
+  margin-top: 12px;
+  padding: 14px 12px 12px;
+  border-radius: 12px;
+  background: #1b2a5b;
+  color: #fff;
+}
+.amr-offer-why-title {
+  margin: 0 0 6px;
+  font-size: clamp(27px, 7.4vw, 36px);
+  font-weight: 900;
+  line-height: 1;
+  text-wrap: balance;
+}
+.amr-offer-why-text {
+  margin: 0 0 12px;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.38;
+  color: #e4e8f2;
+  text-wrap: balance;
+}
+.amr-offer-why-band {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #d7222b;
+  font-size: clamp(18px, 5.3vw, 28px);
+  font-weight: 900;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.amr-offer-foot {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #e3e0d8;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #3a415a;
+  text-wrap: balance;
 }
 
 /* ---- Phones: photo header + one-screen sheet ---- */
@@ -807,17 +962,6 @@ input::placeholder {
     min-height: 50px;
     margin-top: 12px;
     font-size: 16.5px;
-  }
-  .amr-done-lede {
-    font-size: 14px;
-    color: #5b6275;
-    margin: 0 0 12px;
-  }
-  .amr-next li {
-    font-size: 15px;
-  }
-  .amr-next small {
-    font-size: 13px;
   }
 }
 

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
-import Script from 'next/script';
 import { getAttribution, wasNewPaidClick } from '@/lib/attribution';
 import { captureTouchAttribution, EMPTY_TOUCH_ATTRIBUTION } from '@/lib/touchAttribution';
 import type { TouchAttribution } from '@/lib/touchAttribution';
@@ -64,12 +63,8 @@ const BIZ_PHONE = BUSINESS.phoneDisplay;
 const BIZ_PHONE_HREF = BUSINESS.phoneHref;
 const KEN_BURNS = true;
 
-// Self-booking (GHL calendar widget) shown on the confirmation screen.
+// Self-booking page (GHL calendar) linked from the confirmation screen's offer.
 const BOOKING_URL = 'https://api.leadconnectorhq.com/widget/booking/hVG6Srpl2MIyc8x4I4H3';
-const BOOKING_TIERS: { when: string; off: string; lead?: boolean }[] = [
-  { when: 'Same-day or next-day inspection', off: '7% off', lead: true },
-  { when: 'Any later date', off: '5% off' },
-];
 
 const DRAFT_KEY = 'amr-funnel-draft';
 
@@ -277,6 +272,13 @@ const CONCERN_ICONS: Record<string, JSX.Element> = {
 const PhoneIcon = () => (
   <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinejoin="round" aria-hidden>
     <path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.6 5.5a2 2 0 0 1 2-2z" />
+  </svg>
+);
+const CalendarIcon = () => (
+  <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinejoin="round" aria-hidden>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" strokeLinecap="round" />
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01" strokeWidth={2.8} strokeLinecap="round" />
   </svg>
 );
 const CheckIcon = ({ size = 11 }: { size?: number }) => (
@@ -523,7 +525,7 @@ export default function Funnel() {
   const stepPct = Math.round((s.screen / 5) * 100) + '%';
   const doneTitle = `Request received${s.first.trim() ? `, ${s.first.trim()}` : ''}`;
 
-  // Prefill the booking widget from what they just told us, so self-booking
+  // Prefill the booking page from what they just told us, so self-booking
   // doesn't ask for the same details twice. Unknown params are ignored by GHL.
   const bookingSrc = (() => {
     const q = new URLSearchParams();
@@ -1255,172 +1257,65 @@ export default function Funnel() {
                   </div>
                 </div>
                 {urgent && <div style={{ ...urgentBadge, marginBottom: '10px' }}>ACTIVE LEAK — PRIORITY SCHEDULING</div>}
-                <p className="amr-done-lede">
-                  Our Houston team will call or text shortly to confirm a time. Here&rsquo;s what happens next.
-                </p>
-                <ol className="amr-next">
-                  <li>
-                    <b>01</b>
-                    <div>
-                      We confirm a time
-                      <small>By call or text from {BIZ_PHONE}.</small>
-                    </div>
-                  </li>
-                  <li>
-                    <b>02</b>
-                    <div>
-                      We inspect and photograph
-                      <small>Every finding is documented.</small>
-                    </div>
-                  </li>
-                  <li>
-                    <b>03</b>
-                    <div>
-                      You decide
-                      <small>A straight answer, with no obligation.</small>
-                    </div>
-                  </li>
-                </ol>
 
-                {/* ---- Self-booking incentive + GHL calendar ---- */}
-                <section
-                  style={{
-                    border: '1px solid #e3e0d8',
-                    borderRadius: '12px',
-                    background: '#fff',
-                    padding: '18px',
-                    marginTop: '18px',
-                    animation: 'riseIn .4s .3s ease both',
-                  }}
-                >
-                  <div
-                    className="amr-book-badge"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '9px',
-                      background: '#d7222b',
-                      color: '#ffffff',
-                      borderRadius: 999,
-                      padding: '9px 16px',
-                      marginBottom: '12px',
-                      fontFamily: FONT_MONO,
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase',
-                      lineHeight: 1,
-                    }}
-                  >
-                    Book yourself &mdash; click below
-                    <span aria-hidden="true" style={{ fontSize: '14px', lineHeight: 1 }}>
-                      &darr;
-                    </span>
-                  </div>
-                  <h3
-                    style={{
-                      fontFamily: FONT_COND,
-                      fontSize: 'clamp(24px,2.5vw,32px)',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      lineHeight: 1.05,
-                      margin: '0 0 14px',
-                      color: '#1b2a5b',
-                    }}
-                  >
-                    Save more on a full roof replacement
-                  </h3>
+                {/* ---- Call-or-book offer (owner's reference design) ---- */}
+                <div className="amr-offer">
+                  <p className="amr-offer-act">Act now.</p>
+                  <p className="amr-offer-claim">Claim your savings.</p>
+                  <p className="amr-offer-banner">These offers apply only if you call or book now.</p>
 
-                  <ul style={{ listStyle: 'none', margin: '0 0 16px', padding: 0, display: 'grid', gap: '6px' }}>
-                    {BOOKING_TIERS.map((t) => (
-                      <li
-                        key={t.when}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          padding: '11px 14px',
-                          borderRadius: '8px',
-                          background: t.lead ? '#fdf4f4' : '#faf9f6',
-                          border: `1px solid ${t.lead ? '#f0cdd0' : '#eceae3'}`,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: FONT_COND,
-                            fontSize: '19px',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            lineHeight: 1.1,
-                            color: '#1b2a5b',
-                          }}
-                        >
-                          {t.when}
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: FONT_MONO,
-                            fontSize: t.lead ? '16px' : '14px',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap',
-                            color: t.lead ? '#d7222b' : '#6a7186',
-                          }}
-                        >
-                          {t.off}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <p style={{ fontSize: '15.5px', color: '#3a415a', lineHeight: 1.55, margin: '0 0 10px' }}>
-                    <strong style={{ color: '#1b2a5b' }}>Why reward speed?</strong> Because roofs don&rsquo;t wait. Every
-                    day a small issue goes unaddressed is another day for water to find its way in. Acting early protects
-                    your home, and we&rsquo;d rather reward that decision than sell you a bigger job later.
-                  </p>
-                  <p style={{ fontSize: '15.5px', color: '#3a415a', lineHeight: 1.55, margin: '0 0 14px' }}>
-                    No pressure and no obligation. You get an honest assessment from a team that documents everything and
-                    explains it in plain terms. If your roof is in good shape, we&rsquo;ll tell you.
-                  </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#1b2a5b', lineHeight: 1.5, margin: '0 0 14px' }}>
-                    Pick your time below. Same-day slots are limited and go first.
-                  </p>
-
-                  {/* GHL booking widget. form_embed.js auto-sizes the iframe to its
-                      content; the iframe scrolls on its own if the script is blocked. */}
-                  <div
-                    style={{
-                      border: '1px solid #eceae3',
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      background: '#faf9f6',
-                    }}
-                  >
-                    <iframe
-                      src={bookingSrc}
-                      title="Schedule your free roof inspection"
-                      loading="lazy"
-                      style={{ display: 'block', width: '100%', height: 720, border: 'none' }}
-                    />
-                  </div>
-                  <Script src="https://link.msgsndr.com/js/form_embed.js" strategy="lazyOnload" />
-
-                  <p style={{ fontSize: '14px', color: '#6a7186', lineHeight: 1.5, margin: '10px 0 0' }}>
-                    Calendar not loading?{' '}
-                    <a href={bookingSrc} target="_blank" rel="noopener noreferrer" style={{ color: '#d7222b', fontWeight: 700 }}>
-                      Open the scheduler in a new tab &rarr;
+                  <section className="amr-offer-card" aria-labelledby="offer-call">
+                    <span className="amr-offer-chip">Option 1 &middot; Call now</span>
+                    <h3 id="offer-call" className="amr-offer-amount">
+                      $1,000
+                      <span className="amr-offer-amount-sub">Cash back</span>
+                    </h3>
+                    <p className="amr-offer-how">Call us now, before our team contacts you, to qualify.</p>
+                    <a href={BIZ_PHONE_HREF} className="amr-offer-btn amr-offer-btn--red">
+                      <PhoneIcon />
+                      Call now &middot; Claim $1,000
                     </a>
-                  </p>
-                  <p style={{ ...finePrint, marginTop: '12px' }}>
-                    Discount applies to full roof replacements only, is based on the inspection date selected at booking,
-                    and cannot be combined with other offers. Terms apply.
-                  </p>
-                </section>
+                    <a href={BIZ_PHONE_HREF} className="amr-offer-phone">
+                      {BIZ_PHONE}
+                    </a>
+                  </section>
 
-                <a href={BIZ_PHONE_HREF} className="amr-callout">
-                  <PhoneIcon />
-                  Need it sooner? Call {BIZ_PHONE}
-                </a>
+                  <div className="amr-offer-or" aria-hidden="true">
+                    or
+                  </div>
+
+                  <section className="amr-offer-card" aria-labelledby="offer-book">
+                    <span className="amr-offer-chip">Option 2 &middot; Book now</span>
+                    <h3 id="offer-book" className="amr-offer-amount amr-offer-amount--wide">
+                      Extra 7% off
+                    </h3>
+                    <p className="amr-offer-how">Book online now for a free roof inspection today or tomorrow.</p>
+                    <a href={bookingSrc} className="amr-offer-btn amr-offer-btn--navy">
+                      <CalendarIcon />
+                      Book now &middot; Choose my time
+                    </a>
+                  </section>
+
+                  <div className="amr-offer-now">
+                    <p className="amr-offer-now-title">Now means now.</p>
+                    <p className="amr-offer-now-text">
+                      Calling later, waiting for our team to contact you, or asking during the inspection does not
+                      qualify.
+                    </p>
+                  </div>
+
+                  <div className="amr-offer-why">
+                    <p className="amr-offer-why-title">Why we pass the savings to you.</p>
+                    <p className="amr-offer-why-text">
+                      You help our team work efficiently, avoid calls at the wrong time, and reduce our overhead.
+                    </p>
+                    <p className="amr-offer-why-band">We pass those savings on to you.</p>
+                  </div>
+
+                  <p className="amr-offer-foot">
+                    On your full roof replacement. Free inspection. No pressure. No obligation.
+                  </p>
+                </div>
               </div>
             )}
           </div>
