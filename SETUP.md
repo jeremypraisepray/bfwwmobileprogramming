@@ -146,10 +146,12 @@ The offer copy lives in the confirmation block of `components/Funnel.tsx`; the
 
 The confirmation screen also shows the step-1 credentials strip (in the phone
 header, and under the photos on desktop) and a collage of real homeowner and
-crew photos: in the desktop photo panel, and at the end of the page on phones.
-The photos live in `public/assets/homeowners/`; swap or reorder them in
-`HOMEOWNER_PHOTOS` in `components/Funnel.tsx` (each entry's `area` is its
-place in the mosaic, `pos` keeps faces in the crop).
+crew photos. Desktop shows all eight in the photo panel. Phones show five in a
+mini mosaic in the header and the other three at the end of the page, so none
+repeats. The photos live in `public/assets/homeowners/`; swap or reorder them
+in `HOMEOWNER_PHOTOS` in `components/Funnel.tsx` (each entry's `area` is its
+place in the mosaic, `pos` keeps faces in the crop, `phone` picks header or
+footer on phones).
 
 **Option B (API v2 direct upsert)** is documented in the design handoff. If you
 prefer it, swap the webhook `fetch` in `app/api/lead/route.ts` for a call to

@@ -186,7 +186,8 @@ const LAYERS: Layer[] = [
 
 const PHOTO_SIZES = '45vw';
 
-// Phone step headers — graded crops, one per step (6 = confirmation). All are
+// Phone step headers — graded crops, one per step (the confirmation header shows
+// the mini homeowner collage instead). All are
 // stacked in the header and cross-fade, so the next step's photo is already
 // loaded by the time it's needed.
 const MOBILE_HEROES: { slot: number; src: string; alt: string; pos: string }[] = [
@@ -195,22 +196,31 @@ const MOBILE_HEROES: { slot: number; src: string; alt: string; pos: string }[] =
   { slot: 3, src: '/assets/hdr-timing.webp', alt: 'An American Master Roofing inspector walking a property with the homeowner', pos: '42% 40%' },
   { slot: 4, src: '/assets/hdr-address.webp', alt: 'Aerial view of a completed shingle roof', pos: '50% 50%' },
   { slot: 5, src: '/assets/hdr-offers.webp', alt: 'Roofer securing new flashing on a shingle roof', pos: '50% 45%' },
-  { slot: 6, src: '/assets/hdr-done.webp', alt: 'Homeowners in front of their new roof', pos: '50% 30%' },
 ];
 
 // Confirmation collage: real AMR homeowners and crews. `area` places each photo
 // in the mosaic (see .amr-collage in globals.css); the largest tiles get the
 // photos that hold up best at size. `pos` keeps faces and signs in the crop.
-const HOMEOWNER_PHOTOS: { area: string; src: string; alt: string; pos: string; panel: string; inline: string }[] = [
-  { area: 'a', src: '/assets/homeowners/couple-sign.webp', alt: 'Homeowners holding an American Master Roofing “Another happy homeowner” sign', pos: '50% 42%', panel: '34vw', inline: '100vw' },
-  { area: 'b', src: '/assets/homeowners/homeowner-sign.webp', alt: 'A homeowner with an American Master Roofing sign in her driveway', pos: '50% 40%', panel: '12vw', inline: '34vw' },
-  { area: 'c', src: '/assets/homeowners/kitchen-visit.jpg', alt: 'An American Master Roofing rep with two homeowners in their kitchen', pos: '50% 35%', panel: '12vw', inline: '34vw' },
-  { area: 'd', src: '/assets/homeowners/team-sign.webp', alt: 'The American Master Roofing team behind a free roof inspection sign', pos: '50% 48%', panel: '23vw', inline: '67vw' },
-  { area: 'e', src: '/assets/homeowners/homeowner-sign-brick.jpg', alt: 'A homeowner holding an American Master Roofing sign in front of his brick home', pos: '50% 38%', panel: '12vw', inline: '34vw' },
-  { area: 'f', src: '/assets/homeowners/family-selfie.jpg', alt: 'American Master Roofing reps taking a selfie with a homeowner family', pos: '50% 40%', panel: '23vw', inline: '67vw' },
-  { area: 'g', src: '/assets/homeowners/rep-selfie.webp', alt: 'An American Master Roofing rep with a homeowner holding his roofing folder', pos: '50% 35%', panel: '12vw', inline: '34vw' },
-  { area: 'h', src: '/assets/homeowners/crew-on-roof.webp', alt: 'A rep and a homeowner watching the crew work on the roof', pos: '50% 28%', panel: '12vw', inline: '34vw' },
+// Desktop shows all eight in the photo panel. Phones split them so none
+// repeats: five in a mini mosaic in the header, the other three at the end.
+type HomeownerPhoto = { area: string; src: string; alt: string; pos: string; phone: 'header' | 'footer' };
+const HOMEOWNER_PHOTOS: HomeownerPhoto[] = [
+  { area: 'a', src: '/assets/homeowners/couple-sign.webp', alt: 'Homeowners holding an American Master Roofing “Another happy homeowner” sign', pos: '50% 42%', phone: 'header' },
+  { area: 'b', src: '/assets/homeowners/homeowner-sign.webp', alt: 'A homeowner with an American Master Roofing sign in her driveway', pos: '50% 40%', phone: 'header' },
+  { area: 'c', src: '/assets/homeowners/kitchen-visit.jpg', alt: 'An American Master Roofing rep with two homeowners in their kitchen', pos: '50% 30%', phone: 'header' },
+  { area: 'd', src: '/assets/homeowners/team-sign.webp', alt: 'The American Master Roofing team behind a free roof inspection sign', pos: '50% 48%', phone: 'header' },
+  { area: 'e', src: '/assets/homeowners/homeowner-sign-brick.jpg', alt: 'A homeowner holding an American Master Roofing sign in front of his brick home', pos: '50% 38%', phone: 'footer' },
+  { area: 'f', src: '/assets/homeowners/family-selfie.jpg', alt: 'American Master Roofing reps taking a selfie with a homeowner family', pos: '50% 40%', phone: 'header' },
+  { area: 'g', src: '/assets/homeowners/rep-selfie.webp', alt: 'An American Master Roofing rep with a homeowner holding his roofing folder', pos: '50% 35%', phone: 'footer' },
+  { area: 'h', src: '/assets/homeowners/crew-on-roof.webp', alt: 'A rep and a homeowner watching the crew work on the roof', pos: '50% 28%', phone: 'footer' },
 ];
+
+// Responsive image width per tile, by collage variant and tile area.
+const COLLAGE_SIZES: Record<'panel' | 'header' | 'footer', (area: string) => string> = {
+  panel: (a) => (a === 'a' ? '34vw' : a === 'd' || a === 'f' ? '23vw' : '12vw'),
+  header: (a) => (a === 'a' ? '46vw' : '23vw'),
+  footer: () => '34vw',
+};
 
 const HERO_KICKERS: Record<number, string> = {
   2: 'Step 2 of 5 · Meet your Houston team',
@@ -315,13 +325,15 @@ function CredGlass({ className }: { className?: string }) {
   );
 }
 
-// Mosaic of homeowner photos: 4x3 in the desktop panel, 3 columns inline on phones.
-function HomeownerCollage({ variant }: { variant: 'panel' | 'inline' }) {
+// Mosaic of homeowner photos: all eight (4x3) in the desktop panel; on phones,
+// a mini mosaic in the header and the remaining three at the end of the page.
+function HomeownerCollage({ variant }: { variant: 'panel' | 'header' | 'footer' }) {
+  const photos = variant === 'panel' ? HOMEOWNER_PHOTOS : HOMEOWNER_PHOTOS.filter((p) => p.phone === variant);
   return (
     <div className={`amr-collage amr-collage--${variant}`}>
-      {HOMEOWNER_PHOTOS.map((p, i) => (
+      {photos.map((p, i) => (
         <figure key={p.area} className="amr-photo-tile" style={{ gridArea: p.area, '--i': i } as CSSProperties}>
-          <Image src={p.src} alt={p.alt} fill sizes={variant === 'panel' ? p.panel : p.inline} style={{ objectPosition: p.pos }} />
+          <Image src={p.src} alt={p.alt} fill sizes={COLLAGE_SIZES[variant](p.area)} style={{ objectPosition: p.pos }} />
         </figure>
       ))}
     </div>
@@ -796,6 +808,7 @@ export default function Funnel() {
             </>
           ) : activeIdx === 6 ? (
             <>
+              <HomeownerCollage variant="header" />
               <div className="m-kick">
                 <i />
                 {HERO_KICKERS[6]}
@@ -1364,7 +1377,7 @@ export default function Funnel() {
                     <span style={{ width: 8, height: 8, background: '#d7222b', display: 'inline-block', flex: 'none' }} />
                     HAPPY HOUSTON HOMEOWNERS
                   </div>
-                  <HomeownerCollage variant="inline" />
+                  <HomeownerCollage variant="footer" />
                 </section>
               </div>
             )}

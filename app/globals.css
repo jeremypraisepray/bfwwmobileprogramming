@@ -644,8 +644,9 @@ input::placeholder {
 }
 
 /* Homeowner collage (confirmation). Desktop: fills the photo panel between
-   the top strip and the caption, credentials strip underneath. Phones: an
-   inline 3-column mosaic at the end of the page. */
+   the top strip and the caption, credentials strip underneath. Phones: a
+   mini mosaic in the confirmation header (same navy-panel look), and the
+   remaining photos in a row at the end of the page. */
 .amr-collage-layer {
   position: absolute;
   inset: 44px 20px 58px;
@@ -675,15 +676,25 @@ input::placeholder {
     'c d d e'
     'f f g h';
 }
-.amr-collage--inline {
+.amr-collage--header {
   gap: 6px;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 196px 156px 164px 164px;
+  margin-bottom: 14px;
+  aspect-ratio: 2 / 1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   grid-template-areas:
-    'a a a'
-    'b c e'
-    'f f g'
-    'd d h';
+    'a a b c'
+    'a a d f';
+}
+.amr-collage--header .amr-photo-tile {
+  border-radius: 8px;
+  animation: riseIn 0.5s calc(0.1s + var(--i) * 0.07s) ease both;
+}
+.amr-collage--footer {
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: 156px;
+  grid-template-areas: 'e g h';
 }
 .amr-photo-tile {
   position: relative;
@@ -693,7 +704,7 @@ input::placeholder {
   background: #1b2a5b;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
-.amr-collage--inline .amr-photo-tile {
+.amr-collage--footer .amr-photo-tile {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(12, 20, 46, 0.12);
 }
